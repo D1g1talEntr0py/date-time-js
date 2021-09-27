@@ -1,0 +1,11 @@
+{
+	"cSpell.words": [
+		"corejs",
+		"Resig"
+	],
+	"cSpell.ignoreWords": [
+		"SSSZ"
+	],
+	"eslint.alwaysShowStatus": true,
+	"eslint.runtime": "node"
+}
