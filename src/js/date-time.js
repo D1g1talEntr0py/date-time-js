@@ -28,7 +28,7 @@ class DateTime {
 				break;
 			}
 			case Types.STRING: {
-				this._date = _parse(date, pattern);
+				this._date = _parse(date, { pattern, utc });
 				break;
 			}
 			case Types.NUMBER: {
@@ -389,7 +389,7 @@ class DateTime {
 	}
 
 	isDaylightSavingsTime() {
-		return this._date.toLocaleString(this._locale.name, { timeZoneName: DateTime.timezoneFormats.SHORT}).slice(-2, -1) == 'D';
+		return this._date.toLocaleString(this._locale.name, { timeZoneName: DateTime.timezoneFormats.SHORT }).slice(-2, -1) == 'D';
 	}
 
 	isLeapYear() {
@@ -403,7 +403,7 @@ class DateTime {
 	 * @returns {Date}
 	 */
 	toDate() {
-		return this._utc ? new Date(+this._date - Math.abs(this.getTimezoneOffset() * 6e4)) : new Date(+this._date);
+		return this._utc ? new Date(this._date - Math.abs(_get(this._date, DateTime.fields.TIMEZONE_OFFSET) * 6e4)) : new Date(+this._date);
 	}
 
 	/**
@@ -507,12 +507,13 @@ const _get = (date, field, utc = false) => date[`${utc ? 'getUTC' : 'get'}${fiel
 
 /**
  * 
- * @param {string} parsableDate 
- * @param {string} pattern
+ * @param {string} parsableDate
+ * @param {Object} [config] 
+ * @param {string} config.pattern
+ * @param {boolean} config.utc
  * @returns {Object}
  */
-const _parse = (parsableDate, pattern) => {
-	let utc = false;
+const _parse = (parsableDate, { pattern, utc = false }) => {
 	const units = {};
 
 	if (pattern) {
