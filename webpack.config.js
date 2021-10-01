@@ -1,13 +1,21 @@
 import path from 'path';
+import TerserPlugin from 'terser-webpack-plugin';
 
 export default ({
 	target: ['web', 'es5'],
-	entry: './src/js/index.js',
+	entry: {
+		'date-time': './src/js/index.js',
+		'date-time.min': './src/js/index.js'
+	},
 	output: {
 		path: path.resolve(process.cwd(), 'dist'),
-		filename: 'date-time.min.js',
+		filename: '[name].js',
 		library: 'DateTime',
-		libraryExport: 'default'
+		libraryExport: 'default',
+		clean: true
+	},
+	optimization: {
+		minimizer: [new TerserPlugin({ include: /\.min\.js$/, terserOptions: { ecma: 5 } })]
 	},
 	module: {
 		rules: [{	test: /\.js$/, use: 'babel-loader', exclude: /node_modules/ }]
