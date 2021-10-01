@@ -2,16 +2,12 @@ import './extensions.js';
 import Locale from './locale.js';
 import Period from './period.js';
 import Duration from './duration.js';
+import DateParser from './date-parser.js';
+import DateParserPattern from './date-parser-pattern.js'
 import { Types, Type } from './types.js';
+import { dateParsingPatterns, dateTimePatterns, dateTimeFields, dateTimeFieldValues, timezone, timezoneFormats, INVALID_DATE, regExps, epochDateMS, dateTimePeriods } from './constants.js';
 
-const INVALID_DATE = 'Invalid Date';
-const regExp = {
-	nonAlpha: /[\WT]+/g,
-	nonNumeric: /[^\dA-Z]|T/gi,
-	matchOffset: /(?=[+-]\d\d:?\d\d)/,
-	patternParsingTokens: /(YYYY|MM?|DD?|hh?|HH?|mm?|ss?|S{1,3}|Z|A)/g,
-	formattingTokens: /\[([^\]]+)]|Y{1,4}|M{1,4}|Do|D{1,2}|d{1,3}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|z{1,3}|SSS/g
-};
+let currentLocale;
 
 class DateTime {
 	/**
@@ -28,7 +24,7 @@ class DateTime {
 				break;
 			}
 			case Types.STRING: {
-				this._date = _parse(date, { pattern, utc });
+				this._date = pattern ? DateParser.fromPattern(date, pattern, utc) : new DateParser(date, dateParsingPatterns, utc);
 				break;
 			}
 			case Types.NUMBER: {
@@ -51,52 +47,10 @@ class DateTime {
 
 	static Locale = Locale;
 	static Duration = Duration;
-
-	static patterns = {
-		DEFAULT: 'dd MMM Do YYYY HH:mm:ss z',
-		MEDIUM_DATE: 'MMM D, YYYY',
-		LONG_DATE: 'MMMM D, YYYY',
-		FULL_DATE: 'ddd, MMMM D, YYYY',
-		FULL_DATE_TIME: 'ddd, MMMM D, YYYY hh:mm:ss A zzz',
-		SHORT_TIME: 'h:mm A',
-		MEDIUM_TIME: 'h:mm:ss A',
-		LONG_TIME: 'h:mm:ss A zzz',
-		READABLE_TIME: 'h:mm A z',
-		ISO_DATE: 'YYYY-MM-DD',
-		ISO_TIME: 'HH:mm:ss.SSSZ',
-		ISO_DATE_TIME: 'YYYY-MM-DD[T]HH:mm:ss.SSSZ',
-		LOCALE_SHORT_DATE: undefined,
-		LOCALE_DATE: undefined,
-		LOCALE_DATE_TIME: undefined
-	};
-
-	static fields = {
-		YEAR: 'FullYear',
-		MONTH: 'Month',
-		DAY: 'Date',
-		HOURS: 'Hours',
-		MINUTES: 'Minutes',
-		SECONDS: 'Seconds',
-		MILLISECONDS: 'Milliseconds',
-		TIMEZONE_OFFSET: 'TimezoneOffset',
-		DAY_OF_THE_WEEK: 'Day'
-	};
-
-	static periods = {
-		YEARS: new Period(DateTime.fields.YEAR),
-		MONTHS: new Period(DateTime.fields.MONTH),
-		WEEKS: new Period(DateTime.fields.DAY),
-		DAYS: new Period(DateTime.fields.DAY),
-		HOURS: new Period(DateTime.fields.HOURS),
-		MINUTES: new Period(DateTime.fields.MINUTES),
-		SECONDS: new Period(DateTime.fields.SECONDS),
-		MILLISECONDS: new Period(DateTime.fields.MILLISECONDS)
-	}
-
-	static timezoneFormats = {
-		SHORT: 'short',
-		LONG: 'long'
-	}
+	static patterns = dateTimePatterns;
+	static fields = dateTimeFields;
+	static timezoneFormats = timezoneFormats;
+	static periods = dateTimePeriods;
 
 	/**
 	 * 
@@ -106,8 +60,19 @@ class DateTime {
 	static setDefaultLocale(locale) {
 		currentLocale = locale;
 		Object.assign(DateTime.patterns, locale.patterns);
-		dateParsingFormats.locale.tokens = DateTime.patterns.LOCALE_DATE_TIME.replace(regExp.nonAlpha, '').split('').unique();
-		dateParsingFormats.locale.regExp = locale.parsingRegExp;
+		dateParsingPatterns.push(locale.dateParsingPattern);
+
+		const _epochDate = new Date(epochDateMS);
+
+		for (const timezoneFormat of Object.values(DateTime.timezoneFormats)) {
+			timezone.name[timezoneFormat][_epochDate.getTimezoneOffset()] = _formatTimezone(_epochDate, timezoneFormat);
+		}
+	
+		_epochDate.setMonth(5);
+	
+		for (const timezoneFormat of Object.values(DateTime.timezoneFormats)) {
+			timezone.name[timezoneFormat][_epochDate.getTimezoneOffset()] = _formatTimezone(_epochDate, timezoneFormat);
+		}
 	}
 
 	/**
@@ -134,6 +99,19 @@ class DateTime {
 	}
 
 	/**
+	 * Returns a valid date or null otherwise
+	 * 
+	 * @param {string|number|Date|DateTime} date 
+	 * @param {Object} [config]
+	 * @param {string} config.pattern
+	 * @param {boolean} config.utc
+	 */
+	static orNull(date, { pattern, utc } = {}) {
+		const dateTime = new DateTime(date, { pattern, utc });
+		return dateTime.isValid() ? dateTime : null;
+	}
+
+	/**
 	 * Formats the date according to the specified pattern
 	 * 
 	 * @memberOf DateTime.prototype
@@ -145,11 +123,31 @@ class DateTime {
 	}
 
 	local() {
-		return this._utc ? new DateTime(this, { utc: false }) : this;
+		if (!this._utc) {
+			return this;
+		}
+
+		const dateTime = new DateTime(this, { utc: false });
+		// Ignore JavaScript's offset for ancient dates and calculate the milliseconds from the difference between the current offset and the value from the locale string
+		if (dateTime._date.getTimezoneOffset() % 60 !== 0) {
+			dateTime._date.setMilliseconds(dateTime.getMilliseconds() - dateTime.getTimezoneOffset() * 60 * 1000 - _convertOffsetToMilliseconds(dateTime._date));
+		}
+
+		return dateTime;
 	}
 
 	utc() {
-		return this._utc ? this : new DateTime(this, { utc: true });
+		if (this._utc) {
+			return this;
+		}
+
+		const dateTime = new DateTime(this, { utc: true });
+		// Ignore JavaScript's offset for ancient dates and calculate the milliseconds from the difference between the current offset and the value from the locale string
+		if (dateTime._date.getTimezoneOffset() % 60 !== 0) {
+			dateTime._date.setUTCMilliseconds(dateTime.getMilliseconds() + this.getTimezoneOffset() * 60 * 1000 + _convertOffsetToMilliseconds(dateTime._date));
+		}
+
+		return dateTime;
 	}
 
 	/**
@@ -358,7 +356,7 @@ class DateTime {
 	 * @returns {number}
 	 */
 	getTimezoneOffset() {
-		return this._utc ? 0 : _get(this._date, DateTime.fields.TIMEZONE_OFFSET);
+		return this._utc ? 0 : Math.round(_get(this._date, DateTime.fields.TIMEZONE_OFFSET) / 60) * 60;
 	}
 
 	getLocale() {
@@ -372,7 +370,7 @@ class DateTime {
 	}
 
 	getTimezone(format = DateTime.timezoneFormats.SHORT) {
-		return this._valid ? _formatTimezone(this, format) : undefined;
+		return this._valid ? timezone.name[format] : undefined;
 	}
 
 	/**
@@ -389,7 +387,7 @@ class DateTime {
 	}
 
 	isDaylightSavingsTime() {
-		return this._date.toLocaleString(this._locale.name, { timeZoneName: DateTime.timezoneFormats.SHORT }).slice(-2, -1) == 'D';
+		return this.utc ? false : timezone.name[DateTime.timezoneFormats.SHORT][this.getTimezoneOffset()].slice(-2, -1) == 'D';
 	}
 
 	isLeapYear() {
@@ -450,37 +448,6 @@ class DateTime {
 	}
 }
 
-let currentLocale;
-const dateTimeFieldValues = Object.values(DateTime.fields);
-const dateParsingFormats = {
-	iso: {
-		tokens: DateTime.patterns.ISO_DATE_TIME.replace(regExp.nonAlpha, '').split('').unique(),
-		regExp: /^(\d{4})-([0][1-9]|[1][0-2])-([0][1-9]|[1|2][0-9]|[3][0|1])[\sT]*(0\d|1\d|2[0-3])?:?([0-5]\d)?:?([0-5]\d)?[.:]?(\d{3})?([+-]\d\d:?\d\d|Z)?$/
-	},
-	locale: {
-		tokens: undefined,
-		regExp: undefined
-	}
-};
-
-DateTime.setDefaultLocale(new Locale({
-	name: 'en-US',
-	patterns: {
-		LOCALE_SHORT_DATE: 'M/D/YYYY',
-		LOCALE_DATE: 'MM/DD/YYYY',
-		LOCALE_DATE_TIME: 'MM/DD/YYYY hh:mm:ss A'
-	},
-	parsingRegExp: /^([0]?[1-9]|[1][0-2])[/]?([0]?[1-9]|[1|2][0-9]|[3][0|1])[/]?(\d{4})[\s]*(0?\d|1\d|2[0-3])?:?([0-5]?\d)?:?([0-5]?\d)?[\s]*([A|P]M)?$/i,
-	dayNames: [
-		'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
-		'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
-	],
-	monthNames: [
-		'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-		'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
-	]
-}));
-
 /**
  * 
  * @param {DateTime} dateTime
@@ -490,10 +457,10 @@ DateTime.setDefaultLocale(new Locale({
  * @returns {DateTime}
  */
  const _set = (dateTime, field, value, utc) => {
-	const dt = new DateTime(dateTime, { utc: utc });
-	dt._date[`${dateTime._utc ? 'setUTC' : 'set'}${field}`](value);
+	const _dateTime = new DateTime(dateTime, { utc });
+	_dateTime._date[`${dateTime._utc ? 'setUTC' : 'set'}${field}`](value);
 
-	return dt;
+	return _dateTime;
 };
 
 /**
@@ -504,117 +471,6 @@ DateTime.setDefaultLocale(new Locale({
  * @returns {number}
  */
 const _get = (date, field, utc = false) => date[`${utc ? 'getUTC' : 'get'}${field}`]();
-
-/**
- * 
- * @param {string} parsableDate
- * @param {Object} [config] 
- * @param {string} config.pattern
- * @param {boolean} config.utc
- * @returns {Object}
- */
-const _parse = (parsableDate, { pattern, utc = false }) => {
-	const units = {};
-
-	if (pattern) {
-		let [ date, offset = '' ] = parsableDate.split(regExp.matchOffset);
-		date = `${date.replace(regExp.nonNumeric, '')}${offset}`;
-		const patternTokens = pattern.match(regExp.patternParsingTokens);
-
-		for (let index = 0, cursor = 0, length = patternTokens.length, token, value; index < length; cursor += value.length, index++) {
-			token = patternTokens[index];
-			if (token.charAt(0) in dateTokenParsers) {
-				value = index == length - 1 ? date.slice(cursor) : date.slice(cursor, cursor + token.length);
-				const { unit, parser } = dateTokenParsers[token.charAt(0)];
-				units[unit] = parser ? parser(value) : +value;
-			}
-		}
-	} else {
-		let dateTokens, patternTokens;
-		for (const { tokens, regExp } of Object.values(dateParsingFormats)) {
-			dateTokens = parsableDate.match(regExp)?.slice(1);
-			if (dateTokens) {
-				patternTokens = tokens;
-				break;
-			}
-		}			
-
-		if (!dateTokens) {
-			return new Date('');
-		}
-
-		for (let index = 0, length = patternTokens.length, { unit, parser } = {}, token; index < length; index++) {
-			token = dateTokens[index];
-			if (token !== undefined) {
-				({ unit, parser } = dateTokenParsers[patternTokens[index]]);
-				units[unit] = parser ? parser(token) : +token;
-			}
-		}
-	}
-
-	if (units[dateTimeUnits.ZONE_OFFSET] !== undefined) {
-		utc = true;
-		if (units[dateTimeUnits.ZONE_OFFSET] != 0) {
-			if (!units[dateTimeUnits.MILLISECONDS]) {
-				units[dateTimeUnits.MILLISECONDS] = 0;
-			}
-			units[dateTimeUnits.MILLISECONDS] += units[dateTimeUnits.ZONE_OFFSET] * 6e4;
-		}
-	} else if (units[dateTimeUnits.POST_MERIDIEM] !== undefined) {
-		if (units[dateTimeUnits.POST_MERIDIEM]) {
-			units[dateTimeUnits.HOURS] += 12;
-		} else if (units[dateTimeUnits.HOURS] == 12) {
-			units[dateTimeUnits.HOURS] = 0;
-		}
-	}
-
-	const dateProperties = [
-		units[dateTimeUnits.YEAR], 
-		units[dateTimeUnits.MONTH] || 0, 
-		units[dateTimeUnits.DAY] || 1, 
-		units[dateTimeUnits.HOURS] || 0, 
-		units[dateTimeUnits.MINUTES] || 0, 
-		units[dateTimeUnits.SECONDS] || 0, 
-		units[dateTimeUnits.MILLISECONDS] || 0
-	];
-
-	return utc ? new Date(Date.UTC(...dateProperties)) : new Date(...dateProperties);
-};
-
-const dateTimeUnits = {
-	YEAR: 'year',
-	MONTH: 'month',
-	DAY: 'day',
-	HOURS: 'hours',
-	MINUTES: 'minutes',
-	SECONDS: 'seconds',
-	MILLISECONDS: 'milliseconds',
-	ZONE_OFFSET: 'zoneOffset',
-	POST_MERIDIEM: 'postMeridiem'
-};
-
-const dateTokenParsers = {
-	Y: { unit: dateTimeUnits.YEAR, parser: undefined },
-	M: { unit: dateTimeUnits.MONTH, parser: (input) => input - 1 },
-	D: { unit: dateTimeUnits.DAY, parser: undefined },
-	H: { unit: dateTimeUnits.HOURS, parser: undefined },
-	h: { unit: dateTimeUnits.HOURS, parser: undefined },
-	m: { unit: dateTimeUnits.MINUTES, parser: undefined },
-	s: { unit: dateTimeUnits.SECONDS, parser: undefined },
-	S: { unit: dateTimeUnits.MILLISECONDS, parser: (input) => +(input ?? '0').substring(0, 3) },
-	Z: { unit: dateTimeUnits.ZONE_OFFSET, parser: (input) => input == 'Z' ? 0 : _parseZoneOffset(input) },
-	A: { unit: dateTimeUnits.POST_MERIDIEM, parser: (input) => input.toLowerCase() == 'pm' }
-};
-
-/**
- * 
- * @param {string} offset 
- * @returns {number}
- */
-const _parseZoneOffset = (offset = '') => {
-	const [ hours = 0, minutes = 0 ] = offset.includes(':') ? offset.split(':').map(Number) : [ +offset / 100, undefined ];
-	return -Math.abs(hours * 60 + minutes);
-};
 
 /**
  *
@@ -640,8 +496,7 @@ const _format = (dateTime, pattern) => {
 		MM: () => `${(month + 1)}`.padStart(2, '0'),
 		MMM: () => dateTime.getLocale().monthNames[month],
 		MMMM: () => dateTime.getLocale().monthNames[month + 12],
-		YY: () => `${year}`.slice(2),
-		YYYY: () => year,
+		YYYY: () => `${year}`.padStart(4, 0),
 		h: () => hours % 12 || 12,
 		hh: () => `${(hours % 12 || 12)}`.padStart(2, '0'),
 		H: () => hours,
@@ -653,22 +508,29 @@ const _format = (dateTime, pattern) => {
 		SSS: () => `${milliseconds}`.padStart(3, '0'),
 		a: () => hours < 12 ? 'am' : 'pm',
 		A: () => hours < 12 ? 'AM' : 'PM',
-		z: () => _formatTimezone(dateTime, DateTime.timezoneFormats.SHORT),
-		zzz: () => `(${_formatTimezone(dateTime, DateTime.timezoneFormats.LONG)})`,
+		z: () => dateTime.isUtc() ? 'UTC' : timezone.name[DateTime.timezoneFormats.SHORT][offset],
+		zzz: () => `(${dateTime.isUtc() ? 'UTC' : timezone.name[DateTime.timezoneFormats.LONG][offset]})`,
 		Z: () => dateTime.isUtc() ? 'Z' : _formatOffset(offset).splice(3, ':'),
 		ZZ: () => _formatOffset(offset),
 		Do: () => `${day}${['th', 'st', 'nd', 'rd'][day % 10 > 3 ? 0 : (day % 100 - day % 10 != 10) * day % 10]}`
 	};
 
-	return pattern.replace(regExp.formattingTokens, ($0) => $0 in flags ? flags[$0]() : $0.slice(1, $0.length - 1));
+	return pattern.replace(regExps.formattingTokens, ($0) => $0 in flags ? flags[$0]() : $0.slice(1, $0.length - 1));
 };
 
 const _formatOffset = (offset) => (offset > 0 ? '-' : '+') + `${(Math.floor(Math.abs(offset) / 60) * 100 + Math.abs(offset) % 60)}`.padStart(4, '0');
 
-const _formatTimezone = (dateTime, format) => {
-	const localeDate = dateTime.toLocaleDateString({ timeZone: dateTime.isUtc() ? 'UTC' : undefined, timeZoneName: format });
+const _formatTimezone = (date, format) => {
+	const localeDate = date.toLocaleDateString(currentLocale.name, { timeZoneName: format });
 	return format == DateTime.timezoneFormats.LONG ? localeDate.slice(localeDate.indexOf(',') + 2) : localeDate.slice(-4).trim();
 };
+
+const _convertOffsetToMilliseconds = (date) => {
+	const offset = _formatTimezone(date, DateTime.timezoneFormats.LONG);
+	const [ sign, hours, minutes, seconds ] = offset.match(/^(?:GMT)([+-])(0\d|1\d|2[0-3]):([0-5]\d):([0-5]\d)$/).slice(1);
+
+	return +(sign + new Duration({ hours, minutes, seconds }).asMilliseconds());
+}
 
 /**
  * 
@@ -710,5 +572,30 @@ const _performOperation = (dateTime, value, period, subtract = false) => {
 
 	return period instanceof Period ? _execute(dateTime, period, value) : dateTime;
 };
+
+const _init = () => {
+	dateParsingPatterns.push(new DateParserPattern(DateTime.patterns.ISO_DATE_TIME, /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][\d]|[3][01])[\sT]*(0\d|1\d|2[0-3])?:?([0-5]\d)?:?([0-5]\d)?[.:]?(\d{3})?([+-]\d\d:?\d\d|Z)?$/));
+
+	DateTime.setDefaultLocale(new Locale({
+		name: 'en-US',
+		patterns: {
+			LOCALE_DATE: 'MM/DD/YYYY',
+			LOCALE_SHORT_DATE: 'M/D/YYYY',		
+			LOCALE_DATE_TIME: 'MM/DD/YYYY hh:mm:ss A',
+			LOCALE_SHORT_DATE_TIME: 'M/D/YYYY h:m:s A'
+		},
+		parsingRegExp: /^(0[1-9]|1[0-2])[/]?(0[1-9]|[12]\d|3[01])[/]?(\d{4})[\s]*(0?[1-9]|1[0-2])?:?(0?[1-9]|[1-5]\d)?:?(0?[1-9]|[1-5]\d)?[\s]*([A|P]M)?$/i,
+		dayNames: [
+			'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
+			'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+		],
+		monthNames: [
+			'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+			'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
+		]
+	}));
+}
+
+_init();
 
 export default DateTime;
