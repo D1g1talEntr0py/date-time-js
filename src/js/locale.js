@@ -1,8 +1,10 @@
+import DateParserPattern from './date-parser-pattern.js';
+
 export default class Locale {
 	constructor({ name, patterns, parsingRegExp, dayNames, monthNames }) {
 		this._name = name;
 		this._patterns = patterns;
-		this._parsingRegExp = parsingRegExp;
+		this._dateParsingPattern = new DateParserPattern(patterns.LOCALE_DATE_TIME, parsingRegExp);
 		this._dayNames = dayNames;
 		this._monthNames = monthNames;
 	}
@@ -15,8 +17,8 @@ export default class Locale {
 		return this._patterns;
 	}
 
-	get parsingRegExp() {
-		return this._parsingRegExp;
+	get dateParsingPattern() {
+		return this._dateParsingPattern;
 	}
 
 	get dayNames() {
