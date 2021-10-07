@@ -1,26 +1,33 @@
 {
-	"name": "date-time",
+	"name": "date-time-js",
 	"version": "1.0",
 	"author": {
 		"name": "Jason DiMeo"
 	},
 	"description": "JavaScript DateTime Library",
 	"scripts": {
-		"build": "webpack --mode=production",
-		"start": "webpack --mode=development"
+		"build": "webpack --mode=production --env esVersion=5",
+		"build-native": "webpack --mode=production --env esVersion=2021",
+		"start": "webpack --mode=development --env esVersion=2021",
+		"test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js"
 	},
 	"type": "module",
 	"module": "src/js/index.js",
 	"devDependencies": {
 		"@babel/cli": "7.15.7",
-		"@babel/core": "7.15.5",
-		"@babel/eslint-parser": "7.15.7",
-		"@babel/preset-env": "7.15.6",
+		"@babel/core": "7.15.8",
+		"@babel/eslint-parser": "7.15.8",
+		"@babel/preset-env": "7.15.8",
 		"@babel/register": "7.15.3",
 		"babel-loader": "8.2.2",
-		"core-js": "3.18.1",
+		"core-js": "3.18.2",
+		"jest": "27.2.4",
 		"terser-webpack-plugin": "5.2.4",
-		"webpack": "5.55.1",
-		"webpack-cli": "4.8.0"
+		"webpack": "5.57.1",
+		"webpack-cli": "4.9.0"
+	},
+	"jest": {
+		"verbose": true,
+		"transform": {}
 	}
 }

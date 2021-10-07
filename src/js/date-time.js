@@ -1,11 +1,11 @@
-import './extensions.js';
 import Locale from './locale.js';
 import Period from './period.js';
 import Duration from './duration.js';
 import DateParser from './date-parser.js';
 import DateParserPattern from './date-parser-pattern.js'
+import { _nativeDate } from './utils.js';
 import { Types, Type } from './types.js';
-import { dateParsingPatterns, dateTimePatterns, dateTimeFields, dateTimeFieldValues, timezone, timezoneFormats, INVALID_DATE, regExps, epochDateMS, dateTimePeriods } from './constants.js';
+import { dateParsingPatterns, dateTimePatterns, dateTimeFields, dateTimeFieldValues, timezone, INVALID_DATE, regExps, dateTimePeriods } from './constants.js';
 
 let currentLocale;
 
@@ -19,8 +19,8 @@ class DateTime {
 	 */
 	constructor(date, { pattern, utc = false } = {}) {
 		switch(Type.of(date)) {
-			case Types.DATE: {
-				this._date = new Date(+date);
+			case Types.DATE_TIME: case Types.DATE: {
+				this._date = _nativeDate({ date: +date });
 				break;
 			}
 			case Types.STRING: {
@@ -28,16 +28,23 @@ class DateTime {
 				break;
 			}
 			case Types.NUMBER: {
-				this._date = new Date(date);
+				this._date = _nativeDate({ date, utc });
 				break;
 			}
-			case Types.BOOLEAN: case Types.UNDEFINED: {
-				this._date = new Date();
+			case Types.ARRAY: {
+				--date[1];
+				this._date = _nativeDate({ date, utc, type: Types.ARRAY });
 				break;
 			}
-			default: {
-				this._date = date instanceof DateTime ? new Date(+date) : new Date('');			
+			case Types.BOOLEAN: {
+				this._date = _nativeDate({ utc: utc = date });
+				break;
 			}
+			case Types.UNDEFINED: case Types.NULL: {
+				this._date = _nativeDate({ utc });
+				break;
+			}
+			default: this._date = _nativeDate({ date: '' });
 		}
 
 		this._utc = utc;
@@ -49,7 +56,7 @@ class DateTime {
 	static Duration = Duration;
 	static patterns = dateTimePatterns;
 	static fields = dateTimeFields;
-	static timezoneFormats = timezoneFormats;
+	static timezoneFormats = timezone.formats;
 	static periods = dateTimePeriods;
 
 	/**
@@ -62,7 +69,7 @@ class DateTime {
 		Object.assign(DateTime.patterns, locale.patterns);
 		dateParsingPatterns.push(locale.dateParsingPattern);
 
-		const _epochDate = new Date(epochDateMS);
+		const _epochDate = _nativeDate({ date: 0 });
 
 		for (const timezoneFormat of Object.values(DateTime.timezoneFormats)) {
 			timezone.name[timezoneFormat][_epochDate.getTimezoneOffset()] = _formatTimezone(_epochDate, timezoneFormat);
@@ -130,7 +137,7 @@ class DateTime {
 		const dateTime = new DateTime(this, { utc: false });
 		// Ignore JavaScript's offset for ancient dates and calculate the milliseconds from the difference between the current offset and the value from the locale string
 		if (dateTime._date.getTimezoneOffset() % 60 !== 0) {
-			dateTime._date.setMilliseconds(dateTime.getMilliseconds() - dateTime.getTimezoneOffset() * 60 * 1000 - _convertOffsetToMilliseconds(dateTime._date));
+			dateTime._date.setMilliseconds(dateTime.getMilliseconds() - dateTime.getTimezoneOffset() * 6e4 - _convertOffsetToMilliseconds(dateTime._date));
 		}
 
 		return dateTime;
@@ -144,7 +151,7 @@ class DateTime {
 		const dateTime = new DateTime(this, { utc: true });
 		// Ignore JavaScript's offset for ancient dates and calculate the milliseconds from the difference between the current offset and the value from the locale string
 		if (dateTime._date.getTimezoneOffset() % 60 !== 0) {
-			dateTime._date.setUTCMilliseconds(dateTime.getMilliseconds() + this.getTimezoneOffset() * 60 * 1000 + _convertOffsetToMilliseconds(dateTime._date));
+			dateTime._date.setUTCMilliseconds(dateTime.getMilliseconds() + this.getTimezoneOffset() * 6e4 + _convertOffsetToMilliseconds(dateTime._date));
 		}
 
 		return dateTime;
@@ -282,8 +289,7 @@ class DateTime {
 	}
 
 	setLocale(locale) {
-		this._locale = locale;
-		DateTime.setDefaultLocale(locale);
+		DateTime.setDefaultLocale(this._locale = locale);
 	}
 
 	/**
@@ -401,7 +407,7 @@ class DateTime {
 	 * @returns {Date}
 	 */
 	toDate() {
-		return this._utc ? new Date(this._date - Math.abs(_get(this._date, DateTime.fields.TIMEZONE_OFFSET) * 6e4)) : new Date(+this._date);
+		return _nativeDate({ date: +this._date });
 	}
 
 	/**
@@ -446,6 +452,10 @@ class DateTime {
 	toLocaleTimeString(options = {}) {
 		return this._date.toLocaleTimeString(this._locale.name, options);
 	}
+
+	get [Symbol.toStringTag]() {
+    return DateTime.name;
+  }
 }
 
 /**
@@ -574,7 +584,7 @@ const _performOperation = (dateTime, value, period, subtract = false) => {
 };
 
 const _init = () => {
-	dateParsingPatterns.push(new DateParserPattern(DateTime.patterns.ISO_DATE_TIME, /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][\d]|[3][01])[\sT]*(0\d|1\d|2[0-3])?:?([0-5]\d)?:?([0-5]\d)?[.:]?(\d{3})?([+-]\d\d:?\d\d|Z)?$/));
+	dateParsingPatterns.push(new DateParserPattern(DateTime.patterns.ISO_DATE_TIME, /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][\d]|[3][01])[\sT]*(0\d|1\d|2[0-3])?:?([0-5]\d)?:?([0-5]\d)?[.:]?(\d{1,9})?([+-]\d\d:?\d\d|Z)?$/));
 
 	DateTime.setDefaultLocale(new Locale({
 		name: 'en-US',

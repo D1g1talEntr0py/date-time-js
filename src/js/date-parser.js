@@ -1,9 +1,18 @@
 import DateParserPattern from './date-parser-pattern.js';
-import { dateTimeFieldValues, datePatternTokens, dateTimeUnits, epochDateMS } from './constants.js';
+import { _nativeDate } from './utils.js';
+import { Types } from './types.js';
+import { dateTimeFieldValues, datePatternTokens, dateTimeUnits } from './constants.js';
 
 const fieldValues = dateTimeFieldValues.slice(0, 7);
 
 export default class DateParser {
+	/**
+	 * 
+	 * @param {string} date 
+	 * @param {Array<DateParserPattern>} dateParsingPatterns 
+	 * @param {boolean} utc 
+	 * @returns {Date}
+	 */
 	constructor(date, dateParsingPatterns, utc = false) {
 		let dateTokens, patternTokens, zoneOffset, meridiem;
 		for (const { tokens, regExp } of Object.values(dateParsingPatterns)) {
@@ -15,10 +24,10 @@ export default class DateParser {
 		}			
 
 		if (!dateTokens) {
-			return new Date('');
+			return _nativeDate({ date: '' });
 		}
 
-		const values = Array(8).fill(0);
+		const values = [0, 0, 1, 0, 0, 0, 0, 0, 0];
 		for (let i = 0, length = patternTokens.length, { index, unit } = {}, dateToken; i < length; i++) {
 			dateToken = dateTokens[i];
 			if (dateToken !== undefined) {
@@ -38,7 +47,7 @@ export default class DateParser {
 			utc = true;
 			if (zoneOffset != 0) {
 				// Add the offset to the milliseconds
-				values[datePatternTokens.S.index] += zoneOffset * 6e4;
+				values[datePatternTokens.S.index] += -(zoneOffset) * 6e4;
 			}
 		} else if (meridiem !== undefined) {
 			if (meridiem.toUpperCase() == 'PM') {
@@ -52,14 +61,14 @@ export default class DateParser {
 
 		let _date;
 		if (values[datePatternTokens.Y.index] < 100) {
-			_date = utc ? new Date(0) : new Date(epochDateMS);
+			_date = _nativeDate({ date: 0, utc });
 
-			for (let i = 0, length = values.length - 1, value; i < length; i++) {
+			for (let i = 0, length = fieldValues.length, value; i < length; i++) {
 				value = values[i];
 				_date[`${utc ? 'setUTC' : 'set'}${fieldValues[i]}`](value);
 			}
 		} else {
-			_date = utc ? new Date(Date.UTC(...values)) : new Date(...values);
+			_date = _nativeDate({ date: values, utc, type: Types.ARRAY });
 		}
 
 		return _date;
@@ -77,5 +86,5 @@ export default class DateParser {
  */
  const _parseZoneOffset = (offset = '') => {
 	const [ hours = 0, minutes = 0 ] = offset.includes(':') ? offset.split(':').map(Number) : [ +offset / 100, undefined ];
-	return -Math.abs(hours * 60 + minutes);
+	return hours * 60 + minutes;
 };

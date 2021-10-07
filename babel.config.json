@@ -20,7 +20,10 @@
 			"@babel/preset-env", {
 				"corejs": { "version": 3,	"proposals": true	},
 				"useBuiltIns": "usage",
-				"targets": "> 0.25%, last 1 versions, not dead"
+				"targets": {
+					"node": "current",
+					"browsers": ["> 0.25%, last 1 versions, not dead"]
+				}
 			}
 		] 
 	]

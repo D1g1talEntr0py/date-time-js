@@ -1,6 +1,5 @@
 import Period from './period.js';
 
-const epochDateMS = 18000000;
 const INVALID_DATE = 'Invalid Date';
 
 const regExps = {
@@ -52,18 +51,15 @@ const dateTimePeriods = {
 	MILLISECONDS: new Period(dateTimeFields.MILLISECONDS)
 }
 
-const timezoneFormats = {
-	SHORT: 'short',
-	LONG: 'long'
-}
-
-const dateTimeFieldValues = Object.values(dateTimeFields);
-
 const dateParsingPatterns = [];
+const dateTimeFieldValues = Object.values(dateTimeFields);
+const timezoneFormats = { SHORT: 'short',	LONG: 'long' };
 
-const timezone = { city: Intl.DateTimeFormat().resolvedOptions().timeZone,	name: {} };
-timezone.name[timezoneFormats.SHORT] = {};
-timezone.name[timezoneFormats.LONG] = {};
+const timezone = {
+	formats: timezoneFormats,
+	city: Intl.DateTimeFormat().resolvedOptions().timeZone,	
+	name: {	[timezoneFormats.SHORT]: {}, [timezoneFormats.LONG]: {}	} 
+};
 
 const dateTimeUnits = {
 	YEAR: 'year',
@@ -90,4 +86,4 @@ const datePatternTokens = {
 	A: { index: 7, unit: dateTimeUnits.MERIDIEM, regExp: /([A|P]M)?/ }
 };
 
-export { epochDateMS, INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateParsingPatterns, dateTimePeriods, timezone, timezoneFormats, dateTimeUnits, datePatternTokens };
+export { INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateParsingPatterns, dateTimePeriods, timezone, dateTimeUnits, datePatternTokens };

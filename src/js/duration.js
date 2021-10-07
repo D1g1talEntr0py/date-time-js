@@ -1,4 +1,3 @@
-import DateTime from './date-time.js';
 import { Type } from './types.js';
 
 export default class Duration {
@@ -17,7 +16,7 @@ export default class Duration {
 			this._days = value % 365;
 			value = Math.floor(value / 365);
 			this._years = value;
-		} else if (arguments.length == 2 && arguments[0] instanceof DateTime && arguments[1] instanceof DateTime) {
+		} else if (arguments.length == 2 && Type.isDateTime(arguments[0]) && Type.isDateTime(arguments[1])) {
 			const [ startDate, endDate ] = [ ...arguments ];
 			this._total = endDate - startDate;
 			this._years = endDate.getYear() - startDate.getYear();

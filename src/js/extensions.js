@@ -7,46 +7,39 @@
  * @param {boolean} [override]
  */
  const defineProperties = (object, properties, override = false) => {
-	Object.keys(properties).forEach((name) => {
-		if (!override && name in object) { return }
+	for (const [ property, value ] of Object.entries(properties)) {
+		if (!override && property in object) { return }
 
-		Object.defineProperty(object, name, {
-			configurable: true,
-			enumerable: false,
-			writable: true,
-			value: properties[name]
-		});
-	});
-}
+		Object.defineProperty(object, property, {	value: value });
+	}
+};
 
-(() => {
-	// Array.prototype extensions
-	defineProperties(Array.prototype, {
-		/**
-		 * Returns a new array of unique values
-		 *
-		 * @returns {Array<*>}
-		 */
-		unique: function() {
-			return this.filter((element, index, array) => array.indexOf(element) >= index);
-		}
-	});
+// Array.prototype extensions
+defineProperties(Array.prototype, {
+	/**
+	 * Returns a new array of unique values
+	 *
+	 * @returns {Array<*>}
+	 */
+	unique: function() {
+		return this.filter((element, index, array) => array.indexOf(element) >= index);
+	}
+});
 
-	// String.prototype
-	defineProperties(String.prototype, {
-		/**
-		 * 
-		 * @memberof String.prototype
-		 * @param {number} start 
-		 * @param  {...string} chars 
-		 * @returns {string}
-		 */
-		splice: function(start, ...chars) {
-			const pair = Array.from(this);
-			pair.splice(start, 0, chars);
-			return pair.join('');
-		}
-	});
-})();
+// String.prototype extensions
+defineProperties(String.prototype, {
+	/**
+	 * 
+	 * @memberof String.prototype
+	 * @param {number} start 
+	 * @param  {...string} chars 
+	 * @returns {string}
+	 */
+	splice: function(start, ...chars) {
+		const pair = Array.from(this);
+		pair.splice(start, 0, chars);
+		return pair.join('');
+	}
+});
 
 export default defineProperties;

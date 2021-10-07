@@ -1,8 +1,11 @@
+import defineProperties from './extensions.js';
+
 class Type {
 	static isObject() {}
 	static isArray() {}
 	static isString() {}
 	static isDate() {}
+	static isDateTime() {}
 	static isRegExp() {}
 	static isFunction() {}
 	static isBoolean() {}
@@ -16,7 +19,7 @@ class Type {
 	 * @returns {string}
 	 */
 	static of(object) {
-		return _type(object);
+		return Object.prototype.toString.call(object).slice(8, -1);
 	}
 }
 
@@ -25,6 +28,7 @@ class Types {
 	static ARRAY = 'Array';
 	static STRING = 'String';
 	static DATE = 'Date';
+	static DATE_TIME = 'DateTime';
 	static REG_EXP = 'RegExp';
 	static FUNCTION = 'Function';
 	static BOOLEAN = 'Boolean';
@@ -33,12 +37,6 @@ class Types {
 	static UNDEFINED = 'Undefined';
 }
 
-const _type = (object) => Object.prototype.toString.call(object).slice(8, -1);
-
-Object.values(Types).forEach(function(type) {
-	Object.defineProperty(Type, 'is' + type, {
-		value: (object) => _type(object) == type
-	});
-});
+defineProperties(Type, Object.values(Types).map((type) => ({ [`is${type}`]: (object) => Type.of(object) == type })));
 
 export { Type, Types };
