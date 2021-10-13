@@ -3,5 +3,6 @@
     "module": "esnext",
     "target": "esnext"
   },
+  "include": [ "src/js/*.js" ],
   "exclude": [ "node_modules", "dist" ]
 }

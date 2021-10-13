@@ -1,16 +1,14 @@
 import DateParserPattern from './date-parser-pattern.js';
-import { _nativeDate } from './utils.js';
-import { Types } from './types.js';
-import { dateTimeFieldValues, datePatternTokens, dateTimeUnits } from './constants.js';
+import { dateTimeFieldValues, datePatternTokens, dateTimeUnits, _dateFromArray } from './constants.js';
 
 const fieldValues = dateTimeFieldValues.slice(0, 7);
 
 export default class DateParser {
 	/**
-	 * 
-	 * @param {string} date 
-	 * @param {Array<DateParserPattern>} dateParsingPatterns 
-	 * @param {boolean} utc 
+	 *
+	 * @param {string} date
+	 * @param {Array<DateParserPattern>} dateParsingPatterns
+	 * @param {boolean} [utc]
 	 * @returns {Date}
 	 */
 	constructor(date, dateParsingPatterns, utc = false) {
@@ -21,10 +19,10 @@ export default class DateParser {
 				patternTokens = tokens;
 				break;
 			}
-		}			
+		}
 
 		if (!dateTokens) {
-			return _nativeDate({ date: '' });
+			return new Date('');
 		}
 
 		const values = [0, 0, 1, 0, 0, 0, 0, 0, 0];
@@ -61,14 +59,14 @@ export default class DateParser {
 
 		let _date;
 		if (values[datePatternTokens.Y.index] < 100) {
-			_date = _nativeDate({ date: 0, utc });
+			_date = new Date(0);
 
 			for (let i = 0, length = fieldValues.length, value; i < length; i++) {
 				value = values[i];
 				_date[`${utc ? 'setUTC' : 'set'}${fieldValues[i]}`](value);
 			}
 		} else {
-			_date = _nativeDate({ date: values, utc, type: Types.ARRAY });
+			_date = _dateFromArray(values, utc);
 		}
 
 		return _date;
@@ -80,8 +78,8 @@ export default class DateParser {
 }
 
 /**
- * 
- * @param {string} offset 
+ *
+ * @param {string} offset
  * @returns {number}
  */
  const _parseZoneOffset = (offset = '') => {

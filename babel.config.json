@@ -1,6 +1,4 @@
 {
-	"compact": true,
-	"minified": true,
 	"assumptions": {
 		"iterableIsArray": true,
 		"constantReexports": true,
@@ -18,13 +16,10 @@
 	"presets": [
 		[
 			"@babel/preset-env", {
-				"corejs": { "version": 3,	"proposals": true	},
 				"useBuiltIns": "usage",
-				"targets": {
-					"node": "current",
-					"browsers": ["> 0.25%, last 1 versions, not dead"]
-				}
+				"corejs": { "version": 3,	"proposals": true	},
+				"targets": { "node": "current",	"browsers": ["> 0.25%, last 1 versions, not dead"] }
 			}
-		] 
+		]
 	]
 }

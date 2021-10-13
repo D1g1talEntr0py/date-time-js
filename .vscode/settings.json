@@ -7,5 +7,8 @@
 		"SSSZ"
 	],
 	"eslint.alwaysShowStatus": true,
-	"eslint.runtime": "node"
+	"eslint.runtime": "node",
+	"js/ts.implicitProjectConfig.checkJs": true,
+	"js/ts.implicitProjectConfig.strictNullChecks": true,
+	"js/ts.implicitProjectConfig.experimentalDecorators": true
 }

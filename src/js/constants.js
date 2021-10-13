@@ -54,11 +54,12 @@ const dateTimePeriods = {
 const dateParsingPatterns = [];
 const dateTimeFieldValues = Object.values(dateTimeFields);
 const timezoneFormats = { SHORT: 'short',	LONG: 'long' };
+const dateOperations = { ADD: 'add', SUBTRACT: 'subtract' };
 
 const timezone = {
 	formats: timezoneFormats,
-	city: Intl.DateTimeFormat().resolvedOptions().timeZone,	
-	name: {	[timezoneFormats.SHORT]: {}, [timezoneFormats.LONG]: {}	} 
+	city: Intl.DateTimeFormat().resolvedOptions().timeZone,
+	name: {	[timezoneFormats.SHORT]: {}, [timezoneFormats.LONG]: {}	}
 };
 
 const dateTimeUnits = {
@@ -86,4 +87,39 @@ const datePatternTokens = {
 	A: { index: 7, unit: dateTimeUnits.MERIDIEM, regExp: /([A|P]M)?/ }
 };
 
-export { INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateParsingPatterns, dateTimePeriods, timezone, dateTimeUnits, datePatternTokens };
+/**
+ *
+ * @param {DateTime} d1
+ * @param {DateTime} d2
+ * @returns {number}
+ */
+const _dateComparatorDescending = (d1, d2) => d2 - d1;
+
+/**
+ *
+ * @param {Array<number>} values
+ * @param {boolean} utc
+ * @returns {Date}
+ */
+const _dateFromArray = (values, utc) => utc ? new Date(Date.UTC(...values)) : new Date(...values);
+
+/**
+ *
+ * @param {Date} date
+ * @param {string} field
+ * @param {number} value
+ * @param {boolean} utc
+ * @returns {DateTime}
+ */
+ const _set = (date, field, value, utc) => date[`${utc ? 'setUTC' : 'set'}${field}`](value);
+
+/**
+ *
+ * @param {Date} date
+ * @param {string} field
+ * @param {boolean} [utc]
+ * @returns {number}
+ */
+const _get = (date, field, utc = false) => date[`${utc ? 'getUTC' : 'get'}${field}`]();
+
+export { INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateParsingPatterns, dateTimePeriods, dateOperations, timezone, dateTimeUnits, datePatternTokens, _dateComparatorDescending, _dateFromArray, _set, _get };

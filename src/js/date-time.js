@@ -1,26 +1,25 @@
 import Locale from './locale.js';
-import Period from './period.js';
 import Duration from './duration.js';
 import DateParser from './date-parser.js';
 import DateParserPattern from './date-parser-pattern.js'
-import { _nativeDate } from './utils.js';
 import { Types, Type } from './types.js';
-import { dateParsingPatterns, dateTimePatterns, dateTimeFields, dateTimeFieldValues, timezone, INVALID_DATE, regExps, dateTimePeriods } from './constants.js';
+import { dateParsingPatterns, dateTimePatterns, dateTimeFields, dateTimeFieldValues, timezone, INVALID_DATE, regExps, dateTimePeriods, _dateFromArray, _set, _get, dateOperations } from './constants.js';
 
 let currentLocale;
 
 class DateTime {
 	/**
-	 * 
-	 * @param {string|number|Date|DateTime} date 
+	 *
+	 * @param {string|number|Date|DateTime|Array<number>|boolean|null|undefined} [date]
 	 * @param {Object} [config]
-	 * @param {string} config.pattern
-	 * @param {boolean} config.utc
+	 * @param {string} [config.pattern]
+	 * @param {boolean} [config.utc]
+	 * @returns {DateTime}
 	 */
 	constructor(date, { pattern, utc = false } = {}) {
 		switch(Type.of(date)) {
 			case Types.DATE_TIME: case Types.DATE: {
-				this._date = _nativeDate({ date: +date });
+				this._date = new Date(+date);
 				break;
 			}
 			case Types.STRING: {
@@ -28,23 +27,24 @@ class DateTime {
 				break;
 			}
 			case Types.NUMBER: {
-				this._date = _nativeDate({ date, utc });
+				this._date = new Date(date);
 				break;
 			}
 			case Types.ARRAY: {
 				--date[1];
-				this._date = _nativeDate({ date, utc, type: Types.ARRAY });
+				this._date = _dateFromArray(date, utc);
 				break;
 			}
 			case Types.BOOLEAN: {
-				this._date = _nativeDate({ utc: utc = date });
+				this._date = new Date();
+				utc = date;
 				break;
 			}
 			case Types.UNDEFINED: case Types.NULL: {
-				this._date = _nativeDate({ utc });
+				this._date = new Date();
 				break;
 			}
-			default: this._date = _nativeDate({ date: '' });
+			default: this._date = new Date('');
 		}
 
 		this._utc = utc;
@@ -60,7 +60,7 @@ class DateTime {
 	static periods = dateTimePeriods;
 
 	/**
-	 * 
+	 *
 	 * @param {Locale} locale
 	 * @param {boolean} setAsCurrent
 	 */
@@ -69,14 +69,14 @@ class DateTime {
 		Object.assign(DateTime.patterns, locale.patterns);
 		dateParsingPatterns.push(locale.dateParsingPattern);
 
-		const _epochDate = _nativeDate({ date: 0 });
+		const _epochDate = new Date(0);
 
 		for (const timezoneFormat of Object.values(DateTime.timezoneFormats)) {
 			timezone.name[timezoneFormat][_epochDate.getTimezoneOffset()] = _formatTimezone(_epochDate, timezoneFormat);
 		}
-	
+
 		_epochDate.setMonth(5);
-	
+
 		for (const timezoneFormat of Object.values(DateTime.timezoneFormats)) {
 			timezone.name[timezoneFormat][_epochDate.getTimezoneOffset()] = _formatTimezone(_epochDate, timezoneFormat);
 		}
@@ -84,9 +84,10 @@ class DateTime {
 
 	/**
 	 * Creates a DateTime object in UTC mode
-	 * 
+	 *
 	 * @memberOf DateTime
-	 * @param {string|number|Date|DateTime} date
+	 * @param {string|number|Date|DateTime} [date]
+	 * @param {string} [pattern]
 	 * @returns {DateTime}
 	 */
 	static utc(date, pattern) {
@@ -99,7 +100,7 @@ class DateTime {
 	 * @memberOf DateTime
 	 * @param {string} date
 	 * @param {string} pattern
-	 * @returns {DateTime|null}
+	 * @returns {DateTime}
 	 */
 	static parse(date, pattern) {
 		return new DateTime(date, { pattern });
@@ -107,11 +108,12 @@ class DateTime {
 
 	/**
 	 * Returns a valid date or null otherwise
-	 * 
-	 * @param {string|number|Date|DateTime} date 
+	 *
+	 * @param {string|number|Date|DateTime} date
 	 * @param {Object} [config]
 	 * @param {string} config.pattern
 	 * @param {boolean} config.utc
+	 * @returns {DateTime|null}
 	 */
 	static orNull(date, { pattern, utc } = {}) {
 		const dateTime = new DateTime(date, { pattern, utc });
@@ -120,9 +122,9 @@ class DateTime {
 
 	/**
 	 * Formats the date according to the specified pattern
-	 * 
+	 *
 	 * @memberOf DateTime.prototype
-	 * @param {string} pattern 
+	 * @param {string} pattern
 	 * @returns {string}
 	 */
 	format(pattern = DateTime.patterns.DEFAULT) {
@@ -158,40 +160,40 @@ class DateTime {
 	}
 
 	/**
-	 * 
-	 * @param {number|Duration} value 
-	 * @param {Period|String} period 
+	 *
+	 * @param {number|Duration} value
+	 * @param {Period|String} [period]
 	 */
 	add(value, period) {
-		return _performOperation(this, value, period);
+		return _performOperation(this, value, period, dateOperations.ADD);
 	}
 
 	/**
-	 * 
-	 * @param {number|Duration} value 
-	 * @param {Object|String} period 
+	 *
+	 * @param {number|Duration} value
+	 * @param {Object|String} [period]
 	 */
 	subtract(value, period) {
-		return _performOperation(this, value, period, true);
+		return _performOperation(this, value, period, dateOperations.SUBTRACT);
 	}
 
 	/**
-	 * 
-	 * @param {DateTime} dateTime 
+	 *
+	 * @param {DateTime} dateTime
 	 * @returns {Duration}
 	 */
 	duration(dateTime) {
-		return new Duration(this.utc(), dateTime.utc());
+		return Duration.between(this, dateTime);
 	}
 
 	/**
-	 * 
-	 * @param {DateTime} dateTime 
-	 * @param {Period} period 
+	 *
+	 * @param {DateTime} dateTime
+	 * @param {Period} [period]
 	 * @returns {number}
 	 */
 	diff(dateTime, period) {
-		const duration = new Duration(this.utc(), dateTime.utc());
+		const duration = Duration.between(this, dateTime);
 
 		switch(period) {
 			case DateTime.periods.YEARS: return duration.asYears();
@@ -207,85 +209,87 @@ class DateTime {
 	}
 
 	/**
-	 * 
-	 * @param {string} field 
-	 * @param {number} value 
+	 *
+	 * @param {string} field
+	 * @param {number} value
 	 * @returns {DateTime}
 	 */
 	set(field, value) {
-		return _set(this, field, field == DateTime.fields.MONTH ? value - 1 : value, this._utc);
+		const dateTime = new DateTime(+this, { utc: this._utc });
+		_set(dateTime._date, field, field == DateTime.fields.MONTH ? value - 1 : value, dateTime._utc);
+		return dateTime;
 	}
 
 	/**
-	 * 
-	 * @param {number} value 
+	 *
+	 * @param {number} value
 	 * @returns {DateTime}
 	 */
 	setYear(value) {
-		return _set(this, DateTime.fields.YEAR, value, this._utc);
+		return this.set(DateTime.fields.YEAR, value);
 	}
 
 	/**
-	 * 
-	 * @param {number} value 
+	 *
+	 * @param {number} value
 	 * @returns {DateTime}
 	 */
 	setMonth(value) {
-		return _set(this, DateTime.fields.MONTH, value - 1, this._utc);
+		return this.set(DateTime.fields.MONTH, value);
 	}
 
 	/**
-	 * 
-	 * @param {number} value 
+	 *
+	 * @param {number} value
 	 * @returns {DateTime}
 	 */
 	setDay(value) {
-		return _set(this, DateTime.fields.DAY, value, this._utc);
+		return this.set(DateTime.fields.DAY, value);
 	}
 
 	/**
-	 * 
-	 * @param {number} value 
+	 *
+	 * @param {number} value
 	 * @returns {DateTime}
 	 */
 	setHours(value) {
-		return _set(this, DateTime.fields.HOURS, value, this._utc);
+		return this.set(DateTime.fields.HOURS, value);
 	}
 
 	/**
-	 * 
-	 * @param {number} value 
+	 *
+	 * @param {number} value
 	 * @returns {DateTime}
 	 */
 	setMinutes(value) {
-		return _set(this, DateTime.fields.MINUTES, value, this._utc);
+		return this.set(DateTime.fields.MINUTES, value);
 	}
 
 	/**
-	 * 
-	 * @param {number} value 
+	 *
+	 * @param {number} value
 	 * @returns {DateTime}
 	 */
 	setSeconds(value) {
-		return _set(this, DateTime.fields.SECONDS, value, this._utc);
+		return this.set(DateTime.fields.SECONDS, value);
 	}
 
 	/**
-	 * 
-	 * @param {number} value 
+	 *
+	 * @param {number} value
 	 * @returns {DateTime}
 	 */
 	setMilliseconds(value) {
-		return _set(this, DateTime.fields.MILLISECONDS, value, this._utc);
+		return this.set(DateTime.fields.MILLISECONDS, value);
 	}
 
 	/**
-	 * 
-	 * @param {number} value 
+	 *
+	 * @param {number} value
 	 * @returns {DateTime}
 	 */
 	setTimezoneOffset(value) {
-		return _set(this, DateTime.fields.TIMEZONE_OFFSET, value, this._utc);
+		return this.set(DateTime.fields.TIMEZONE_OFFSET, value);
 	}
 
 	setLocale(locale) {
@@ -293,8 +297,8 @@ class DateTime {
 	}
 
 	/**
-	 * 
-	 * @param {string} field 
+	 *
+	 * @param {string} field
 	 * @returns {number}
 	 */
 	get(field) {
@@ -302,7 +306,7 @@ class DateTime {
 	}
 
 	/**
-	 * 
+	 *
 	 * @returns {number}
 	 */
 	getYear() {
@@ -310,7 +314,7 @@ class DateTime {
 	}
 
 	/**
-	 * 
+	 *
 	 * @returns {number}
 	 */
 	getMonth() {
@@ -318,7 +322,7 @@ class DateTime {
 	}
 
 	/**
-	 * 
+	 *
 	 * @returns {number}
 	 */
 	getDay() {
@@ -326,7 +330,7 @@ class DateTime {
 	}
 
 	/**
-	 * 
+	 *
 	 * @returns {number}
 	 */
 	getHours() {
@@ -334,7 +338,7 @@ class DateTime {
 	}
 
 	/**
-	 * 
+	 *
 	 * @returns {number}
 	 */
 	getMinutes() {
@@ -342,7 +346,7 @@ class DateTime {
 	}
 
 	/**
-	 * 
+	 *
 	 * @returns {number}
 	 */
 	getSeconds() {
@@ -350,7 +354,7 @@ class DateTime {
 	}
 
 	/**
-	 * 
+	 *
 	 * @returns {number}
 	 */
 	getMilliseconds() {
@@ -358,7 +362,7 @@ class DateTime {
 	}
 
 	/**
-	 * 
+	 *
 	 * @returns {number}
 	 */
 	getTimezoneOffset() {
@@ -403,11 +407,11 @@ class DateTime {
 
 	/**
 	 * Convert DateTime to native Date
-	 * 
+	 *
 	 * @returns {Date}
 	 */
 	toDate() {
-		return _nativeDate({ date: +this._date });
+		return new Date(+this._date);
 	}
 
 	/**
@@ -458,29 +462,8 @@ class DateTime {
   }
 }
 
-/**
- * 
- * @param {DateTime} dateTime
- * @param {string} field 
- * @param {number} value
- * @param {boolean} utc
- * @returns {DateTime}
- */
- const _set = (dateTime, field, value, utc) => {
-	const _dateTime = new DateTime(dateTime, { utc });
-	_dateTime._date[`${dateTime._utc ? 'setUTC' : 'set'}${field}`](value);
-
-	return _dateTime;
-};
-
-/**
- * 
- * @param {Date} date
- * @param {string} field 
- * @param {boolean} [utc]
- * @returns {number}
- */
-const _get = (date, field, utc = false) => date[`${utc ? 'getUTC' : 'get'}${field}`]();
+Type.isDateTime = (object) => object instanceof DateTime;
+Types.DATE_TIME = DateTime.name;
 
 /**
  *
@@ -543,44 +526,31 @@ const _convertOffsetToMilliseconds = (date) => {
 }
 
 /**
- * 
- * @param {DateTime} dateTime 
- * @param {number|Object} value 
- * @param {Period|string} period 
- * @param {boolean} subtract 
+ *
+ * @param {DateTime} dateTime
+ * @param {Duration|number} value
+ * @param {Period|string} period
+ * @param {boolean} subtract
  * @returns {DateTime}
  */
-const _performOperation = (dateTime, value, period, subtract = false) => {
-	/**
-	 * 
-	 * @param {DateTime} dateTime 
-	 * @param {Period} period 
-	 * @param {number} value
-	 * @returns {DateTime}
-	 */
-	const _execute = (dateTime, period, value) => {
-		if (period == DateTime.periods.WEEKS) {
-			value *= 7;
-		}
-		return subtract ? period.subtract(dateTime, value) : period.add(dateTime, value);
-	};
+const _performOperation = (dateTime, value, period, operationType) => {
+	if (Type.isDuration(value)) {
+		const date = new Date(+dateTime);
 
-	if (Type.isObject(value)) {
-		for (const [ periodName, periodValue ] of Object.entries(value)) {
-			period = DateTime.periods[periodName.toUpperCase()];
-			if (period) {
-				dateTime = _execute(dateTime, period, periodValue);
+		for (const period of (operationType == dateOperations.ADD ? value.periods().reverse() : value.periods())) {
+			if (period.value > 0) {
+				_set(date, period.field, _get(date, period.field, dateTime._utc) + (operationType == dateOperations.SUBTRACT ? period.value * -1 : period.value), dateTime._utc);
 			}
 		}
 
-		return dateTime;
+		return new DateTime(date, { utc: dateTime._utc });
 	}
 
-	if (Type.isString(period)) {
-		period = DateTime.periods[period.toUpperCase()];
+	switch(Type.of(period)) {
+		case Types.PERIOD: return period[operationType](dateTime, value);
+		case Types.STRING: return DateTime.periods[period.toUpperCase()][operationType](dateTime, value);
+		default: return dateTime;
 	}
-
-	return period instanceof Period ? _execute(dateTime, period, value) : dateTime;
 };
 
 const _init = () => {
@@ -590,7 +560,7 @@ const _init = () => {
 		name: 'en-US',
 		patterns: {
 			LOCALE_DATE: 'MM/DD/YYYY',
-			LOCALE_SHORT_DATE: 'M/D/YYYY',		
+			LOCALE_SHORT_DATE: 'M/D/YYYY',
 			LOCALE_DATE_TIME: 'MM/DD/YYYY hh:mm:ss A',
 			LOCALE_SHORT_DATE_TIME: 'M/D/YYYY h:m:s A'
 		},
