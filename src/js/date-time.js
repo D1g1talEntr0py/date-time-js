@@ -1,3 +1,4 @@
+import './extensions.js';
 import Locale from './locale.js';
 import Duration from './duration.js';
 import DateParser from './date-parser.js';
@@ -9,6 +10,14 @@ let currentLocale;
 
 class DateTime {
 	/**
+	 * Native JavaScript Date wrapper. Main features include
+	 *
+	 * Parsing of ISO and Locale numerical dates.
+	 * Formatting using custom patterns.
+	 * Ability to calculate the difference between two dates.
+	 * Ability to add and subtract date periods from an existing DateTime instance.
+	 * Ability to create and convert dates either in UTC or Local timezones.
+	 * DateTime instances are immutable.
 	 *
 	 * @param {string|number|Date|DateTime|Array<number>|boolean|null|undefined} [date]
 	 * @param {Object} [config]
@@ -60,6 +69,7 @@ class DateTime {
 	static periods = dateTimePeriods;
 
 	/**
+	 * Set the default locale for the DateTime object
 	 *
 	 * @param {Locale} locale
 	 * @param {boolean} setAsCurrent
@@ -462,8 +472,8 @@ class DateTime {
   }
 }
 
-Type.isDateTime = (object) => object instanceof DateTime;
-Types.DATE_TIME = DateTime.name;
+Object.defineProperty(Type, 'isDateTime', { value: (object) => object instanceof DateTime });
+Object.defineProperty(Types, 'DATE_TIME', { enumerable: true, value: DateTime.name });
 
 /**
  *
@@ -511,8 +521,21 @@ const _format = (dateTime, pattern) => {
 	return pattern.replace(regExps.formattingTokens, ($0) => $0 in flags ? flags[$0]() : $0.slice(1, $0.length - 1));
 };
 
+/**
+ * Converts numeric timezone offset to a string abbreviation (i.e. (EST))
+ *
+ * @param {number} offset
+ * @returns {string}
+ */
 const _formatOffset = (offset) => (offset > 0 ? '-' : '+') + `${(Math.floor(Math.abs(offset) / 60) * 100 + Math.abs(offset) % 60)}`.padStart(4, '0');
 
+/**
+ * Gets the current timezone for the current locale and formats it
+ *
+ * @param {Date} date
+ * @param {string} format
+ * @returns {string}
+ */
 const _formatTimezone = (date, format) => {
 	const localeDate = date.toLocaleDateString(currentLocale.name, { timeZoneName: format });
 	return format == DateTime.timezoneFormats.LONG ? localeDate.slice(localeDate.indexOf(',') + 2) : localeDate.slice(-4).trim();

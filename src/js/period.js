@@ -52,5 +52,5 @@ export default class Period {
   }
 }
 
-Type.isPeriod = (object) => object instanceof Period;
-Types.PERIOD = Period.name;
+Object.defineProperty(Type, 'isPeriod', { value: (object) => object instanceof Period });
+Object.defineProperty(Types, 'PERIOD', { enumerable: true, value: Period.name });

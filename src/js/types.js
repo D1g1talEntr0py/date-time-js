@@ -1,5 +1,3 @@
-import './extensions.js';
-
 class Type {
 	static isArray(object) {
 		return Array.isArray(object);

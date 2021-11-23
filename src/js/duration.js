@@ -99,31 +99,31 @@ export default class Duration {
 	}
 
 	get years() {
-		return this._years;
+		return this._years.value;
 	}
 
 	get months() {
-		return this._months;
+		return this._months.value;
 	}
 
 	get days() {
-		return this._days;
+		return this._days.value;
 	}
 
 	get hours() {
-		return this._hours;
+		return this._hours.value;
 	}
 
 	get minutes() {
-		return this._minutes;
+		return this._minutes.value;
 	}
 
 	get seconds() {
-		return this._seconds;
+		return this._seconds.value;
 	}
 
 	get milliseconds() {
-		return this._milliseconds;
+		return this._milliseconds.value;
 	}
 
 	asYears() {
@@ -171,5 +171,5 @@ export default class Duration {
   }
 }
 
-Type.isDuration = (object) => object instanceof Duration;
-Types.DURATION = Duration.name;
+Object.defineProperty(Type, 'isDuration', { value: (object) => object instanceof Duration });
+Object.defineProperty(Types, 'DURATION', { enumerable: true, value: Duration.name });

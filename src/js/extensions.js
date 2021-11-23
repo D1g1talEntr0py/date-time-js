@@ -1,45 +1,35 @@
-/**
- * Defines properties of an Object using Object.defineProperty if the browser supports it.
- * This is used to keep from having to add the function directly to the prototype of the Object
- *
- * @param {Object} object - The Object to add properties to
- * @param {Object} properties - The properties to add to the Object
- * @param {boolean} [override]
- */
- const defineProperties = (object, properties, override = false) => {
-	for (const [ property, value ] of Object.entries(properties)) {
-		if (!override && property in object) { return }
-
-		Object.defineProperty(object, property, {	value: value });
-	}
-};
-
 // Array.prototype extensions
-defineProperties(Array.prototype, {
-	/**
-	 * Returns a new array of unique values
-	 *
-	 * @returns {Array<*>}
-	 */
-	unique: function() {
-		return this.filter((element, index, array) => array.indexOf(element) >= index);
+Object.defineProperties(Array.prototype, {
+	unique: {
+		/**
+		 * Returns a new array of unique values
+		 *
+		 * @this Array
+		 * @memberof Array.prototype
+		 * @returns {Array<*>}
+		 */
+		value: function() {
+			return this.filter((element, index, array) => array.indexOf(element) >= index);
+		}
 	}
 });
 
 // String.prototype extensions
-defineProperties(String.prototype, {
-	/**
-	 * 
-	 * @memberof String.prototype
-	 * @param {number} start 
-	 * @param  {...string} chars 
-	 * @returns {string}
-	 */
-	splice: function(start, ...chars) {
-		const pair = Array.from(this);
-		pair.splice(start, 0, chars);
-		return pair.join('');
+Object.defineProperties(String.prototype, {
+	splice: {
+		/**
+		 * Inserts a character at a specific index
+		 *
+		 * @this String
+		 * @memberof String.prototype
+		 * @param {number} start
+		 * @param  {...any} chars
+		 * @returns {string}
+		 */
+		value: function(start, ...chars) {
+			const charArray = Array.from(this);
+			charArray.splice(start, 0, chars);
+			return charArray.join('');
+		}
 	}
 });
-
-export default defineProperties;
