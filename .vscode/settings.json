@@ -1,5 +1,7 @@
 {
 	"cSpell.words": [
+		"browserlist",
+		"browserslist",
 		"corejs",
 		"Resig"
 	],
@@ -10,5 +12,20 @@
 	"eslint.runtime": "node",
 	"js/ts.implicitProjectConfig.checkJs": true,
 	"js/ts.implicitProjectConfig.strictNullChecks": true,
-	"js/ts.implicitProjectConfig.experimentalDecorators": true
+	"typescript.validate.enable": false,
+	"typescript.format.enable": false,
+	"typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+	"js/ts.implicitProjectConfig.experimentalDecorators": true,
+	"typescript.autoClosingTags": false,
+	"typescript.format.insertSpaceAfterCommaDelimiter": false,
+	"typescript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": false,
+	"typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": false,
+	"typescript.format.insertSpaceAfterSemicolonInForStatements": false,
+	"typescript.inlayHints.parameterNames.suppressWhenArgumentMatchesName": false,
+	"typescript.suggest.enabled": false,
+	"typescript.suggest.includeCompletionsForImportStatements": false,
+	"typescript.suggest.includeAutomaticOptionalChainCompletions": false,
+	"typescript.suggest.includeCompletionsWithClassMemberSnippets": false,
+	"typescript.suggest.includeCompletionsWithSnippetText": false,
+	"typescript.tsc.autoDetect": "off"
 }
