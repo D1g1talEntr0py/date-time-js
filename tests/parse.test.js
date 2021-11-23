@@ -1,6 +1,11 @@
 // @ts-nocheck
-import { describe, it, expect } from '@jest/globals';
+import MockDate from 'mockdate';
+import { beforeEach, afterEach, describe, it, expect } from '@jest/globals';
 import DateTime from '../src/js/date-time.js';
+
+beforeEach(() => MockDate.set(new Date()));
+
+afterEach(() => MockDate.reset());
 
 describe('Parse Local ISO Dates and Times', () => {
 	it('Ancient Date', () => {
@@ -18,10 +23,7 @@ describe('Parse Local ISO Dates and Times', () => {
 		expect(dateTime.isLeapYear()).toBe(false);
 	});
 
-  it('Now', () => {
-		const dt = new DateTime(), d = new Date();
-    expect(dt.valueOf()).toBe(d.valueOf());
-  });
+  it('Now', () => expect(new DateTime().valueOf()).toBe(new Date().valueOf()));
 
   it('parse and format dates', () => {
     let d = '20130108';
