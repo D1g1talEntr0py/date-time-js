@@ -3,6 +3,7 @@
 		"browserlist",
 		"browserslist",
 		"corejs",
+		"nocheck",
 		"Resig"
 	],
 	"cSpell.ignoreWords": [
