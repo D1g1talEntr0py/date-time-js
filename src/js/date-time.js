@@ -4,9 +4,7 @@ import Duration from './duration.js';
 import DateParser from './date-parser.js';
 import DateParserPattern from './date-parser-pattern.js'
 import { Types, Type } from './types.js';
-import { dateParsingPatterns, dateTimePatterns, dateTimeFields, dateTimeFieldValues, timezone, INVALID_DATE, regExps, dateTimePeriods, _dateFromArray, _set, _get, dateOperations } from './constants.js';
-
-let currentLocale;
+import { dateParsingPatterns, dateTimePatterns, dateTimeFields, dateTimeFieldValues, i18n, INVALID_DATE, regExps, dateTimePeriods, _dateFromArray, _set, _get, dateOperations, _isLeapYear, _isDaylightSavingsTime, unitsInMilliseconds, _formatTimeZone } from './constants.js';
 
 class DateTime {
 	/**
@@ -57,7 +55,7 @@ class DateTime {
 		}
 
 		this._utc = utc;
-		this._locale = currentLocale;
+		this._locale = i18n.locale;
 		this._valid = this._date.toString() !== INVALID_DATE;
 	}
 
@@ -65,8 +63,8 @@ class DateTime {
 	static Duration = Duration;
 	static patterns = dateTimePatterns;
 	static fields = dateTimeFields;
-	static timezoneFormats = timezone.formats;
 	static periods = dateTimePeriods;
+	static timeZoneFormats;
 
 	/**
 	 * Set the default locale for the DateTime object
@@ -75,21 +73,10 @@ class DateTime {
 	 * @param {boolean} setAsCurrent
 	 */
 	static setDefaultLocale(locale) {
-		currentLocale = locale;
+		i18n.locale = locale;
+		DateTime.timeZoneFormats = locale.timeZone.formats;
 		Object.assign(DateTime.patterns, locale.patterns);
 		dateParsingPatterns.push(locale.dateParsingPattern);
-
-		const _epochDate = new Date(0);
-
-		for (const timezoneFormat of Object.values(DateTime.timezoneFormats)) {
-			timezone.name[timezoneFormat][_epochDate.getTimezoneOffset()] = _formatTimezone(_epochDate, timezoneFormat);
-		}
-
-		_epochDate.setMonth(5);
-
-		for (const timezoneFormat of Object.values(DateTime.timezoneFormats)) {
-			timezone.name[timezoneFormat][_epochDate.getTimezoneOffset()] = _formatTimezone(_epochDate, timezoneFormat);
-		}
 	}
 
 	/**
@@ -149,7 +136,7 @@ class DateTime {
 		const dateTime = new DateTime(this, { utc: false });
 		// Ignore JavaScript's offset for ancient dates and calculate the milliseconds from the difference between the current offset and the value from the locale string
 		if (dateTime._date.getTimezoneOffset() % 60 !== 0) {
-			dateTime._date.setMilliseconds(dateTime.getMilliseconds() - dateTime.getTimezoneOffset() * 6e4 - _convertOffsetToMilliseconds(dateTime._date));
+			dateTime._date.setMilliseconds(dateTime.getMilliseconds() - dateTime.getTimezoneOffset() * unitsInMilliseconds.MINUTES - _convertOffsetToMilliseconds(dateTime._date, dateTime._locale.name));
 		}
 
 		return dateTime;
@@ -163,7 +150,7 @@ class DateTime {
 		const dateTime = new DateTime(this, { utc: true });
 		// Ignore JavaScript's offset for ancient dates and calculate the milliseconds from the difference between the current offset and the value from the locale string
 		if (dateTime._date.getTimezoneOffset() % 60 !== 0) {
-			dateTime._date.setUTCMilliseconds(dateTime.getMilliseconds() + this.getTimezoneOffset() * 6e4 + _convertOffsetToMilliseconds(dateTime._date));
+			dateTime._date.setUTCMilliseconds(dateTime.getMilliseconds() + this.getTimezoneOffset() * unitsInMilliseconds.MINUTES + _convertOffsetToMilliseconds(dateTime._date, dateTime._locale.name));
 		}
 
 		return dateTime;
@@ -389,8 +376,8 @@ class DateTime {
 		return month === 2 ? year & 3 || !(year % 25) && year & 15 ? 28 : 29 : 30 + (month + (month >> 3) & 1);
 	}
 
-	getTimezone(format = DateTime.timezoneFormats.SHORT) {
-		return this._valid ? timezone.name[format] : undefined;
+	getTimezone(format = DateTime.timeZoneFormats.SHORT) {
+		return this._valid ? this._locale.timeZone.name[format] : undefined;
 	}
 
 	/**
@@ -407,12 +394,11 @@ class DateTime {
 	}
 
 	isDaylightSavingsTime() {
-		return this.utc ? false : timezone.name[DateTime.timezoneFormats.SHORT][this.getTimezoneOffset()].slice(-2, -1) == 'D';
+		return this._utc ? false : _isDaylightSavingsTime(this._date);
 	}
 
 	isLeapYear() {
-		const year = this.getYear();
-		return !(year & 3 || year & 15 && !(year % 25));
+		return _isLeapYear(this.getYear());
 	}
 
 	/**
@@ -511,8 +497,8 @@ const _format = (dateTime, pattern) => {
 		SSS: () => `${milliseconds}`.padStart(3, '0'),
 		a: () => hours < 12 ? 'am' : 'pm',
 		A: () => hours < 12 ? 'AM' : 'PM',
-		z: () => dateTime.isUtc() ? 'UTC' : timezone.name[DateTime.timezoneFormats.SHORT][offset],
-		zzz: () => `(${dateTime.isUtc() ? 'UTC' : timezone.name[DateTime.timezoneFormats.LONG][offset]})`,
+		z: () => dateTime.isUtc() ? 'UTC' : dateTime.getLocale().timeZone.name[DateTime.timeZoneFormats.SHORT][offset],
+		zzz: () => `(${dateTime.isUtc() ? 'UTC' : dateTime.getLocale().timeZone.name[DateTime.timeZoneFormats.LONG][offset]})`,
 		Z: () => dateTime.isUtc() ? 'Z' : _formatOffset(offset).splice(3, ':'),
 		ZZ: () => _formatOffset(offset),
 		Do: () => `${day}${['th', 'st', 'nd', 'rd'][day % 10 > 3 ? 0 : (day % 100 - day % 10 != 10) * day % 10]}`
@@ -522,28 +508,16 @@ const _format = (dateTime, pattern) => {
 };
 
 /**
- * Converts numeric timezone offset to a string abbreviation (i.e. (EST))
+ * Converts numeric timezone offset in minutes to hours and formats it (i.e. 300 -> -0500)
  *
  * @param {number} offset
  * @returns {string}
  */
 const _formatOffset = (offset) => (offset > 0 ? '-' : '+') + `${(Math.floor(Math.abs(offset) / 60) * 100 + Math.abs(offset) % 60)}`.padStart(4, '0');
 
-/**
- * Gets the current timezone for the current locale and formats it
- *
- * @param {Date} date
- * @param {string} format
- * @returns {string}
- */
-const _formatTimezone = (date, format) => {
-	const localeDate = date.toLocaleDateString(currentLocale.name, { timeZoneName: format });
-	return format == DateTime.timezoneFormats.LONG ? localeDate.slice(localeDate.indexOf(',') + 2) : localeDate.slice(-4).trim();
-};
-
-const _convertOffsetToMilliseconds = (date) => {
-	const offset = _formatTimezone(date, DateTime.timezoneFormats.LONG);
-	const [ sign, hours, minutes, seconds ] = offset.match(/^(?:GMT)([+-])(0\d|1\d|2[0-3]):([0-5]\d):([0-5]\d)$/).slice(1);
+const _convertOffsetToMilliseconds = (date, locale) => {
+	const offset = _formatTimeZone(date, DateTime.timeZoneFormats.LONG, locale);
+	const [ sign, hours, minutes, seconds ] = offset.match(regExps.timeZoneOffset).slice(1);
 
 	return +(sign + new Duration({ hours, minutes, seconds }).asMilliseconds());
 }

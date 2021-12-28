@@ -6,6 +6,9 @@ const regExps = {
 	nonAlpha: /[\WT]+/g,
 	nonNumeric: /[^\dA-Z]|T/gi,
 	matchOffset: /(?=[+-]\d\d:?\d\d)/,
+	timeZoneFormatShort: /[A-Z](?!.*[(])/g,
+	timeZoneFormatLong: /\((?:[^)]+)\)/g,
+	timeZoneOffset: /^(?:GMT)([+-])(0\d|1\d|2[0-3]):([0-5]\d):([0-5]\d)$/,
 	formattingTokens: /\[([^\]]+)]|Y{1,4}|M{1,4}|Do|D{1,2}|d{1,3}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|z{1,3}|SSS/g
 };
 
@@ -53,14 +56,8 @@ const dateTimePeriods = {
 
 const dateParsingPatterns = [];
 const dateTimeFieldValues = Object.values(dateTimeFields);
-const timezoneFormats = { SHORT: 'short',	LONG: 'long' };
 const dateOperations = { ADD: 'add', SUBTRACT: 'subtract' };
-
-const timezone = {
-	formats: timezoneFormats,
-	city: Intl.DateTimeFormat().resolvedOptions().timeZone,
-	name: {	[timezoneFormats.SHORT]: {}, [timezoneFormats.LONG]: {}	}
-};
+const i18n = { locale: undefined, timeZoneFormats: { SHORT: 'short',	LONG: 'long' } };
 
 const dateTimeUnits = {
 	YEAR: 'year',
@@ -85,6 +82,15 @@ const datePatternTokens = {
 	S: { index: 6, unit: dateTimeUnits.MILLISECONDS, regExp: /(\d{3})?/ },
 	Z: { index: 7, unit: dateTimeUnits.ZONE_OFFSET, regExp: /([+-]\d\d:?\d\d|Z)?/ },
 	A: { index: 7, unit: dateTimeUnits.MERIDIEM, regExp: /([A|P]M)?/ }
+};
+
+const unitsInMilliseconds = {
+	YEARS: 3.1536e10,
+	MONTHS: 2.592e9,
+	DAYS: 8.64e7,
+	HOURS: 3.6e6,
+	MINUTES: 6e4,
+	SECONDS: 1e3
 };
 
 /**
@@ -122,4 +128,49 @@ const _dateFromArray = (values, utc) => utc ? new Date(Date.UTC(...values)) : ne
  */
 const _get = (date, field, utc = false) => date[`${utc ? 'getUTC' : 'get'}${field}`]();
 
-export { INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateParsingPatterns, dateTimePeriods, dateOperations, timezone, dateTimeUnits, datePatternTokens, _dateComparatorDescending, _dateFromArray, _set, _get };
+const _isLeapYear = (year) => !(year & 3 || year & 15 && !(year % 25));
+
+/**
+ * https://stackoverflow.com/questions/11887934/how-to-check-if-dst-daylight-saving-time-is-in-effect-and-if-so-the-offset
+ *
+ * Let x be the expected number of milliseconds into the year of interest without factoring in daylight savings.
+ * Let y be the number of milliseconds since the Epoch from the start of the year of the date of interest.
+ * Let z be the number of milliseconds since the Epoch of the full date and time of interest
+ * Let t be the subtraction of both x and y from z: z - y - x. This yields the offset due to DST.
+ * If t is zero, then DST is not in effect. If t is not zero, then DST is in effect.
+ *
+ * @param {Date} date
+ * @returns {boolean} `true` if the date is observing DST, `false` otherwise
+ */
+const _isDaylightSavingsTime = (date) => {
+	var month = date.getMonth() | 0;
+	// Time since the Epoch at the start of the year
+	var _date = new Date(+date);
+	_date.setMonth(0);
+	_date.setDate(0);
+
+	// The code below works based upon the facts of signed right shifts (This assumes that x is a positive integer)
+	//  • (x) >> n: shifts n and fills in the n highest bits with 0s
+	//  • (-x) >> n: shifts n and fills in the n highest bits with 1s
+	return date - _date - (((((31 & - month >> 4) + (28 + _isLeapYear(date.getFullYear() | 0) & 1 - month >> 4) + (31 & 2 - month >> 4) + (30 & 3 - month >> 4) + (31 & 4 - month >> 4) + (30 & 5 - month >> 4) + (31 & 6 - month >> 4) + (31 & 7 - month >> 4) + (30 & 8 - month >> 4) + (31 & 9 - month >> 4) + (30 & 10 - month >> 4) + date.getDate() | 0) & 0xffff) * 24 * 60 + (date.getHours() & 0xff) * 60 + (date.getMinutes() & 0xff)) | 0) * 60 * 1e3 - (date.getSeconds() & 0xff) * 1e3 - date.getMilliseconds() !== 0;
+}
+
+/**
+ * Gets the current timezone for the current locale and formats it
+ *
+ * @param {Date} date
+ * @param {string} format
+ * @param {string} locale
+ * @returns {string}
+ */
+	const _formatTimeZone = (date, format, locale) => {
+	// Check to see if the JavaScript engine supports Intl.DateTimeFormat features
+	const _dateTimeFormat = Intl.DateTimeFormat(locale, { timeZoneName: format });
+	if (_dateTimeFormat.formatToParts) {
+		return _dateTimeFormat.formatToParts(date).find(part => part.type == 'timeZoneName')?.value;
+	} else {
+		return date.toTimeString().match(format == i18n.timeZoneFormats.SHORT ? regExps.timeZoneFormatShort : regExps.timeZoneFormatLong).join('');
+	}
+}
+
+export { INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateParsingPatterns, dateTimePeriods, dateOperations, i18n, dateTimeUnits, datePatternTokens, unitsInMilliseconds, _dateComparatorDescending, _dateFromArray, _set, _get, _isLeapYear, _isDaylightSavingsTime, _formatTimeZone };

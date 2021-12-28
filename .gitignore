@@ -4,3 +4,4 @@ dist
 ### VisualStudioCode ###
 .vscode/**/*
 !.vscode/settings.json
+tests/scratch.js

@@ -1,4 +1,5 @@
 import { Type, Types } from './types.js';
+
 export default class Period {
 	/**
 	 *

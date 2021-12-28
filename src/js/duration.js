@@ -1,6 +1,8 @@
 import Period from './period.js';
 import { Type, Types } from './types.js';
-import { dateTimeFields, _dateComparatorDescending } from './constants.js';
+import { dateTimeFields, _dateComparatorDescending, unitsInMilliseconds } from './constants.js';
+
+const defaultValues = { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 };
 
 export default class Duration {
 	/**
@@ -23,7 +25,7 @@ export default class Duration {
 		this._minutes = new Period(dateTimeFields.MINUTES, minutes);
 		this._seconds = new Period(dateTimeFields.SECONDS, seconds);
 		this._milliseconds = new Period(dateTimeFields.MILLISECONDS, milliseconds);
-		this._total = total ?? milliseconds + seconds * 1e3 + minutes * 6e4 + hours * 3.6e6 + days * 8.64e7 + months * 2.628e9 + years * 3.1556952e10;
+		this._total = total ?? milliseconds + seconds * unitsInMilliseconds.SECONDS + minutes * unitsInMilliseconds.MINUTES + hours * unitsInMilliseconds.HOURS + days * unitsInMilliseconds.DAYS + months * unitsInMilliseconds.MONTHS + years * unitsInMilliseconds.YEARS;
 	}
 
 	/**
@@ -32,20 +34,17 @@ export default class Duration {
 	 * @returns {Duration}
 	 */
 	static fromTimestamp(timestamp) {
-		const values = { years: 0, days: 0, hours: 0, minutes: 0, seconds: 0, milliseconds: 0, total: timestamp };
-		values.milliseconds = timestamp % 1e3;
-		timestamp = Math.floor(timestamp / 1e3);
-		values.seconds = timestamp % 60;
-		timestamp = Math.floor(timestamp / 60);
-		values.minutes = timestamp % 60;
-		timestamp = Math.floor(timestamp / 60);
-		values.hours = timestamp % 24;
-		timestamp = Math.floor(timestamp / 24);
-		values.days = timestamp % 365;
-		timestamp = Math.floor(timestamp / 365);
-		values.years = timestamp;
+		const total = timestamp;
+		const values = { ...defaultValues };
 
-		return new Duration(values);
+		let unitInMilliseconds;
+		for (const unit of Object.keys(values)) {
+			unitInMilliseconds = unitsInMilliseconds[unit.toUpperCase()];
+			values[unit] = Math.floor(timestamp / unitInMilliseconds);
+			timestamp %= unitInMilliseconds;
+		}
+
+		return new Duration({ ...values, total: total });
 	}
 
 	/**
@@ -56,7 +55,7 @@ export default class Duration {
 	 */
 	static between(startDate, endDate) {
 		[ endDate, startDate ] = [startDate, endDate].sort(_dateComparatorDescending);
-		const values = { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, milliseconds: 0, total: endDate - startDate };
+		const values = { ...defaultValues, total: endDate - startDate };
 		values.years = endDate.getYear() - startDate.getYear();
 		values.months = endDate.getMonth() - startDate.getMonth();
 		values.days = endDate.getDay() - startDate.getDay();
@@ -127,35 +126,70 @@ export default class Duration {
 	}
 
 	asYears() {
-		return this._years.value;
+		return Math.floor(this._total / unitsInMilliseconds.YEARS);
 	}
 
 	asMonths() {
-		return this._months.value + this._years.value * 12;
+		return Math.floor(this._total / unitsInMilliseconds.MONTHS);
 	}
 
 	asWeeks() {
-		return Math.floor(this._total / 6.048e8);
+		return Math.floor(this._total / unitsInMilliseconds.WEEKS);
 	}
 
 	asDays() {
-		return Math.floor(this._total / 8.64e7);
+		return Math.floor(this._total / unitsInMilliseconds.DAYS);
 	}
 
 	asHours() {
-		return Math.floor(this._total / 3.6e6);
+		return Math.floor(this._total / unitsInMilliseconds.HOURS);
 	}
 
 	asMinutes() {
-		return Math.floor(this._total / 6e4);
+		return Math.floor(this._total / unitsInMilliseconds.MINUTES);
 	}
 
 	asSeconds() {
-		return Math.floor(this._total / 1e3);
+		return Math.floor(this._total / unitsInMilliseconds.SECONDS);
 	}
 
 	asMilliseconds() {
 		return this._total;
+	}
+
+	normalize() {
+		const values = this.values();
+		if (values.milliseconds >= 1e3) {
+			values.seconds += Math.floor(values.milliseconds / 1e3);
+			values.milliseconds %= 1e3;
+		}
+
+		if (values.seconds >= 60) {
+			values.minutes += Math.floor(values.seconds / 60);
+			values.seconds %= 60;
+		}
+
+		if (values.minutes >= 60) {
+			values.hours += Math.floor(values.minutes / 60);
+			values.minutes %= 60;
+		}
+
+		if (values.hours >= 24) {
+			values.days += Math.floor(values.hours / 24);
+			values.hours %= 24;
+		}
+
+		if (values.days >= 30) {
+			values.months += Math.floor(values.days / 30);
+			values.days %= 30;
+		}
+
+		if (values.months >= 12) {
+			values.years += Math.floor(values.months / 12);
+			values.months %= 12;
+		}
+
+		return new Duration(values);
 	}
 
 	periods() {

@@ -18,12 +18,25 @@ describe.each([
 	['No Argument', new DateTime.Duration()],
 	['Years', new DateTime.Duration({ years: 28 }), Object.assign({}, defaultDurations, { years: 28 })],
 	['Months', new DateTime.Duration({ months: 52 }), Object.assign({}, defaultDurations, { months: 52 })],
-	['Days', new DateTime.Duration({ days: 31 }), Object.assign({}, defaultDurations, { days: 31 })],
+	['Days', new DateTime.Duration({ days: 30 }), Object.assign({}, defaultDurations, { days: 30 })],
 	['Hours', new DateTime.Duration({ hours: 210 }), Object.assign({}, defaultDurations, { hours: 210 })],
 	['Minutes', new DateTime.Duration({ minutes: 542 }), Object.assign({}, defaultDurations, { minutes: 542 })],
-	['Seconds', new DateTime.Duration({ seconds: 52 }), Object.assign({}, defaultDurations, { seconds: 52 })],
-	['Milliseconds', new DateTime.Duration({ milliseconds: 5600 }), Object.assign({}, defaultDurations, { milliseconds: 5600 })]
+	['Seconds', new DateTime.Duration({ seconds: 72 }), Object.assign({}, defaultDurations, { seconds: 72 })],
+	['Milliseconds', new DateTime.Duration({ milliseconds: 5600 }), Object.assign({}, defaultDurations, { milliseconds: 5600 })],
+	['Object', new DateTime.Duration({ years: 28, months: 52, days: 30, hours: 210, minutes: 542, seconds: 72, milliseconds: 5600 }), { years: 28, months: 52, days: 30, hours: 210, minutes: 542, seconds: 72, milliseconds: 5600 }]
 ])('Checking "%s" constructor parameters', checkConstructorParameters);
+
+describe.each([
+	['No Argument', new DateTime.Duration()],
+	['Years', new DateTime.Duration({ years: 28 }).normalize(), Object.assign({}, defaultDurations, { years: 28 })],
+	['Months', new DateTime.Duration({ months: 52 }).normalize(), Object.assign({}, defaultDurations, { years: 4, months: 4 })],
+	['Days', new DateTime.Duration({ days: 30 }).normalize(), Object.assign({}, defaultDurations, { months: 1 })],
+	['Hours', new DateTime.Duration({ hours: 210 }).normalize(), Object.assign({}, defaultDurations, { days: 8, hours: 18 })],
+	['Minutes', new DateTime.Duration({ minutes: 542 }).normalize(), Object.assign({}, defaultDurations, { hours: 9, minutes: 2 })],
+	['Seconds', new DateTime.Duration({ seconds: 72 }).normalize(), Object.assign({}, defaultDurations, { minutes: 1, seconds: 12 })],
+	['Milliseconds', new DateTime.Duration({ milliseconds: 5600 }).normalize(), Object.assign({}, defaultDurations, { seconds: 5, milliseconds: 600 })],
+	['Object', new DateTime.Duration({ years: 28, months: 52, days: 30, hours: 210, minutes: 542, seconds: 72, milliseconds: 5600 }).normalize(), { years: 32, months: 5, days: 9, hours: 3, minutes: 3, seconds: 17, milliseconds: 600 }]
+])('Checking normalized "%s" constructor parameters', checkConstructorParameters);
 
 
 test('Duration from Timestamp', () => {
@@ -39,6 +52,6 @@ test('Duration from Timestamp', () => {
 	expect(epochDateTime.add(duration)).toEqual(dateTime);
 });
 
-test('Duration between', () => {
+// test('Duration between', () => {
 
-});
+// });
