@@ -9,7 +9,8 @@ const regExps = {
 	timeZoneFormatShort: /[A-Z](?!.*[(])/g,
 	timeZoneFormatLong: /\((?:[^)]+)\)/g,
 	timeZoneOffset: /^(?:GMT)([+-])(0\d|1\d|2[0-3]):([0-5]\d):([0-5]\d)$/,
-	formattingTokens: /\[([^\]]+)]|Y{1,4}|M{1,4}|Do|D{1,2}|d{1,3}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|z{1,3}|SSS/g
+	formattingTokens: /\[([^\]]+)]|Y{1,4}|M{1,4}|Do|D{1,2}|d{1,3}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|z{1,3}|SSS/g,
+	isoParsingPattern: /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][\d]|[3][01])[\sT]*(0\d|1\d|2[0-3])?:?([0-5]\d)?:?([0-5]\d)?[.:]?(\d{1,9})?([+-]\d\d:?\d\d|Z)?$/
 };
 
 const dateTimePatterns = {
@@ -54,10 +55,30 @@ const dateTimePeriods = {
 	MILLISECONDS: new Period(dateTimeFields.MILLISECONDS)
 }
 
-const dateParsingPatterns = [];
 const dateTimeFieldValues = Object.values(dateTimeFields);
 const dateOperations = { ADD: 'add', SUBTRACT: 'subtract' };
-const i18n = { locale: undefined, timeZoneFormats: { SHORT: 'short',	LONG: 'long' } };
+const i18n = {
+	locales: {
+		'en-US': {
+			patterns: {
+				LOCALE_DATE: 'MM/DD/YYYY',
+				LOCALE_SHORT_DATE: 'M/D/YYYY',
+				LOCALE_DATE_TIME: 'MM/DD/YYYY hh:mm:ss A',
+				LOCALE_SHORT_DATE_TIME: 'M/D/YYYY h:m:s A'
+			},
+			parsingRegExp: /^(0[1-9]|1[0-2])[/]?(0[1-9]|[12]\d|3[01])[/]?(\d{4})[\s]*(0?[1-9]|1[0-2])?:?(0?[0-9]|[1-5]\d)?:?(0?[0-9]|[1-5]\d)?[\s]*([A|P]M)?$/i,
+			dayNames: [
+				'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
+				'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+			],
+			monthNames: [
+				'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+				'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
+			]
+		}
+	},
+	timeZoneFormats: { SHORT: 'short',	LONG: 'long' }
+};
 
 const dateTimeUnits = {
 	YEAR: 'year',
@@ -173,4 +194,4 @@ const _isDaylightSavingsTime = (date) => {
 	}
 }
 
-export { INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateParsingPatterns, dateTimePeriods, dateOperations, i18n, dateTimeUnits, datePatternTokens, unitsInMilliseconds, _dateComparatorDescending, _dateFromArray, _set, _get, _isLeapYear, _isDaylightSavingsTime, _formatTimeZone };
+export { INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateTimePeriods, dateOperations, i18n, dateTimeUnits, datePatternTokens, unitsInMilliseconds, _dateComparatorDescending, _dateFromArray, _set, _get, _isLeapYear, _isDaylightSavingsTime, _formatTimeZone };

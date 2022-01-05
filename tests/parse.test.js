@@ -55,6 +55,11 @@ describe('Parse Local ISO Dates and Times', () => {
     expect(new DateTime(time).valueOf()).toBe(new Date(time).valueOf())
   });
 
+  it('String en-US Locale date, time and zone', () => {
+    const time = '04/04/2018 04:00:00 PM'
+    expect(new DateTime(time).valueOf()).toBe(new Date(2018, 3, 4, 16, 0, 0).valueOf())
+  });
+
 	it('Arrays with time part', () => {
 		const dateValues = [2018, 5, 1, 13, 52, 44];
 		expect(new DateTime(dateValues).isValid()).toBe(true);

@@ -2,9 +2,8 @@ import './extensions.js';
 import Locale from './locale.js';
 import Duration from './duration.js';
 import DateParser from './date-parser.js';
-import DateParserPattern from './date-parser-pattern.js'
 import { Types, Type } from './types.js';
-import { dateParsingPatterns, dateTimePatterns, dateTimeFields, dateTimeFieldValues, i18n, INVALID_DATE, regExps, dateTimePeriods, _dateFromArray, _set, _get, dateOperations, _isLeapYear, _isDaylightSavingsTime, unitsInMilliseconds, _formatTimeZone } from './constants.js';
+import { dateTimePatterns, dateTimeFields, dateTimeFieldValues, i18n, INVALID_DATE, regExps, dateTimePeriods, _dateFromArray, _set, _get, dateOperations, _isLeapYear, _isDaylightSavingsTime, unitsInMilliseconds, _formatTimeZone } from './constants.js';
 
 class DateTime {
 	/**
@@ -23,14 +22,18 @@ class DateTime {
 	 * @param {boolean} [config.utc]
 	 * @returns {DateTime}
 	 */
-	constructor(date, { pattern, utc = false } = {}) {
+	constructor(date, { pattern, utc = false, locale = 'en-US' } = {}) {
+		this._locale = new Locale({ name: locale, ...i18n.locales[locale] });
+
+		Object.assign(dateTimePatterns, this._locale.patterns);
+
 		switch(Type.of(date)) {
 			case Types.DATE_TIME: case Types.DATE: {
 				this._date = new Date(+date);
 				break;
 			}
 			case Types.STRING: {
-				this._date = pattern ? DateParser.fromPattern(date, pattern, utc) : new DateParser(date, dateParsingPatterns, utc);
+				this._date = new DateParser(this._locale.dateParserPattern).parse(date, utc, pattern);
 				break;
 			}
 			case Types.NUMBER: {
@@ -55,7 +58,6 @@ class DateTime {
 		}
 
 		this._utc = utc;
-		this._locale = i18n.locale;
 		this._valid = this._date.toString() !== INVALID_DATE;
 	}
 
@@ -64,19 +66,15 @@ class DateTime {
 	static patterns = dateTimePatterns;
 	static fields = dateTimeFields;
 	static periods = dateTimePeriods;
-	static timeZoneFormats;
+	static timeZoneFormats = i18n.timeZoneFormats;
 
 	/**
-	 * Set the default locale for the DateTime object
 	 *
 	 * @param {Locale} locale
-	 * @param {boolean} setAsCurrent
 	 */
-	static setDefaultLocale(locale) {
-		i18n.locale = locale;
-		DateTime.timeZoneFormats = locale.timeZone.formats;
-		Object.assign(DateTime.patterns, locale.patterns);
-		dateParsingPatterns.push(locale.dateParsingPattern);
+	static addLocale(locale) {
+		const { name, ...rest } = locale;
+		i18n.locales[name] = rest;
 	}
 
 	/**
@@ -118,14 +116,21 @@ class DateTime {
 	}
 
 	/**
-	 * Formats the date according to the specified pattern
 	 *
-	 * @memberOf DateTime.prototype
-	 * @param {string} pattern
-	 * @returns {string}
+	 * @param  {...DateTime} dates
+	 * @returns
 	 */
-	format(pattern = DateTime.patterns.DEFAULT) {
-		return this.isValid() ? _format(this, pattern) : INVALID_DATE;
+	static min(...dates) {
+		return dates.reduce((a, b) => a < b ? a : b);
+	}
+
+	/**
+	 *
+	 * @param  {...DateTime} dates
+	 * @returns
+	 */
+	static max(...dates) {
+		return dates.reduce((a, b) => a < b ? b : a);
 	}
 
 	local() {
@@ -290,7 +295,7 @@ class DateTime {
 	}
 
 	setLocale(locale) {
-		DateTime.setDefaultLocale(this._locale = locale);
+		return new DateTime(this, { locale });
 	}
 
 	/**
@@ -432,13 +437,24 @@ class DateTime {
 	}
 
 	/**
+	 * Formats the date according to the specified pattern
+	 *
+	 * @memberOf DateTime.prototype
+	 * @param {string} pattern
+	 * @returns {string}
+	 */
+	format(pattern = DateTime.patterns.DEFAULT) {
+		return this.isValid() ? _format(this, pattern) : INVALID_DATE;
+	}
+
+	/**
 	 * Returns a string representation of a date. The format of the string depends on the locale.
 	 *
 	 * @memberOf DateTime
 	 * @returns {string}
 	 */
 	toString() {
-		return this.format();
+		return this.format(DateTime.patterns.FULL_DATE_TIME);
 	}
 
 	toLocaleString(options = {}) {
@@ -549,30 +565,5 @@ const _performOperation = (dateTime, value, period, operationType) => {
 		default: return dateTime;
 	}
 };
-
-const _init = () => {
-	dateParsingPatterns.push(new DateParserPattern(DateTime.patterns.ISO_DATE_TIME, /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][\d]|[3][01])[\sT]*(0\d|1\d|2[0-3])?:?([0-5]\d)?:?([0-5]\d)?[.:]?(\d{1,9})?([+-]\d\d:?\d\d|Z)?$/));
-
-	DateTime.setDefaultLocale(new Locale({
-		name: 'en-US',
-		patterns: {
-			LOCALE_DATE: 'MM/DD/YYYY',
-			LOCALE_SHORT_DATE: 'M/D/YYYY',
-			LOCALE_DATE_TIME: 'MM/DD/YYYY hh:mm:ss A',
-			LOCALE_SHORT_DATE_TIME: 'M/D/YYYY h:m:s A'
-		},
-		parsingRegExp: /^(0[1-9]|1[0-2])[/]?(0[1-9]|[12]\d|3[01])[/]?(\d{4})[\s]*(0?[1-9]|1[0-2])?:?(0?[1-9]|[1-5]\d)?:?(0?[1-9]|[1-5]\d)?[\s]*([A|P]M)?$/i,
-		dayNames: [
-			'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
-			'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
-		],
-		monthNames: [
-			'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-			'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
-		]
-	}));
-}
-
-_init();
 
 export default DateTime;

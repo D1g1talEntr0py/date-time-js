@@ -5,12 +5,11 @@ export default class Locale {
 	constructor({ name, patterns, parsingRegExp, dayNames, monthNames }) {
 		this._name = name;
 		this._timeZone = {
-			formats: i18n.timeZoneFormats,
 			city: new Intl.DateTimeFormat(name).resolvedOptions().timeZone,
 			name: {	[i18n.timeZoneFormats.SHORT]: {}, [i18n.timeZoneFormats.LONG]: {}	}
 		};
 		this._patterns = patterns;
-		this._dateParsingPattern = new DateParserPattern(patterns.LOCALE_DATE_TIME, parsingRegExp);
+		this._dateParserPattern = new DateParserPattern(patterns.LOCALE_DATE_TIME, parsingRegExp);
 		this._dayNames = dayNames;
 		this._monthNames = monthNames;
 
@@ -37,8 +36,8 @@ export default class Locale {
 		return this._patterns;
 	}
 
-	get dateParsingPattern() {
-		return this._dateParsingPattern;
+	get dateParserPattern() {
+		return this._dateParserPattern;
 	}
 
 	get dayNames() {

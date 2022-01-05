@@ -1,19 +1,30 @@
 import DateParserPattern from './date-parser-pattern.js';
-import { dateTimeFieldValues, datePatternTokens, dateTimeUnits, _dateFromArray } from './constants.js';
+import { dateTimePatterns, dateTimeFieldValues, datePatternTokens, dateTimeUnits, regExps, _dateFromArray } from './constants.js';
 
 const fieldValues = dateTimeFieldValues.slice(0, 7);
+const isoParserPattern = new DateParserPattern(dateTimePatterns.ISO_DATE_TIME, regExps.isoParsingPattern);
 
 export default class DateParser {
 	/**
 	 *
-	 * @param {string} date
-	 * @param {Array<DateParserPattern>} dateParsingPatterns
+	 * @param {DateParserPattern} localeParserPattern
+	 * @returns {DateParser}
+	 */
+	constructor(localeParserPattern) {
+		this._dateParsingPatterns = [isoParserPattern, localeParserPattern];
+	}
+
+	/**
+	 *
+	 * @param {Date} date
 	 * @param {boolean} [utc]
+	 * @param {string} [pattern]
 	 * @returns {Date}
 	 */
-	constructor(date, dateParsingPatterns, utc = false) {
+	parse(date, utc = false, pattern) {
 		let dateTokens, patternTokens, zoneOffset, meridiem;
-		for (const { tokens, regExp } of Object.values(dateParsingPatterns)) {
+
+		for (const { tokens, regExp } of (pattern ? [new DateParserPattern(pattern)] : this._dateParsingPatterns)) {
 			dateTokens = date.match(regExp)?.slice(1);
 			if (dateTokens) {
 				patternTokens = tokens;
@@ -59,7 +70,7 @@ export default class DateParser {
 
 		let _date;
 		if (values[datePatternTokens.Y.index] < 100) {
-			_date = new Date(0);
+			_date = new Date(1970, 0, 1);
 
 			for (let i = 0, length = fieldValues.length, value; i < length; i++) {
 				value = values[i];
@@ -70,10 +81,6 @@ export default class DateParser {
 		}
 
 		return _date;
-	}
-
-	static fromPattern(date, pattern, utc) {
-		return new DateParser(date, [new DateParserPattern(pattern)], utc);
 	}
 }
 
