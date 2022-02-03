@@ -3,85 +3,147 @@ import Locale from './locale.js';
 import Duration from './duration.js';
 import DateParser from './date-parser.js';
 import { Types, Type } from './types.js';
-import { dateTimePatterns, dateTimeFields, dateTimeFieldValues, i18n, INVALID_DATE, regExps, dateTimePeriods, _dateFromArray, _set, _get, dateOperations, _isLeapYear, _isDaylightSavingsTime, unitsInMilliseconds, _formatTimeZone } from './constants.js';
+import { dateTimePatterns, dateTimeFields, dateTimeUnits, dateTimeFieldValues, i18n, INVALID_DATE, regExps, dateTimePeriods, _dateFromArray, _set, _get, dateOperations, _isLeapYear, _isDaylightSavingsTime, unitsInMilliseconds, _formatTimeZone, _startOf } from './constants.js';
 
-class DateTime {
-	/**
+/**
 	 * Native JavaScript Date wrapper. Main features include
 	 *
 	 * Parsing of ISO and Locale numerical dates.
 	 * Formatting using custom patterns.
 	 * Ability to calculate the difference between two dates.
-	 * Ability to add and subtract date periods from an existing DateTime instance.
-	 * Ability to create and convert dates either in UTC or Local timezones.
-	 * DateTime instances are immutable.
+	 * Ability to add and subtract date periods from an existing {@link DateTime} instance.
+	 * Ability to create and convert dates either in UTC or local time zones.
+	 * {@link DateTime} instances are immutable.
+	 * @module DateTime
+ */
+
+class DateTime {
+	/**
 	 *
-	 * @param {string|number|Date|DateTime|Array<number>|boolean|null|undefined} [date]
+	 * @param {string|number|Date|Array<number>|null|undefined} [date]
 	 * @param {Object} [config]
 	 * @param {string} [config.pattern]
 	 * @param {boolean} [config.utc]
+	 * @param {string} [config.locale]
 	 * @returns {DateTime}
 	 */
-	constructor(date, { pattern, utc = false, locale = 'en-US' } = {}) {
+	constructor(date, { pattern, utc = false, locale = i18n.defaultLocale } = {}) {
+		/** @private */
 		this._locale = new Locale({ name: locale, ...i18n.locales[locale] });
 
 		Object.assign(dateTimePatterns, this._locale.patterns);
 
 		switch(Type.of(date)) {
-			case Types.DATE_TIME: case Types.DATE: {
+			case Types.DATE: {
+				/** @private */
 				this._date = new Date(+date);
+				if (utc) {
+					this._date.setTime(+this._date - _convertOffsetToMilliseconds(this._date, locale));
+				}
 				break;
 			}
 			case Types.STRING: {
-				this._date = new DateParser(this._locale.dateParserPattern).parse(date, utc, pattern);
+				// Pass options by reference so `options.utc` can be updated
+				const options = { utc: utc, pattern: pattern };
+				/** @private */
+				this._date = new DateParser(this._locale.dateParserPattern).parse(date, options);
+				utc = options.utc;
 				break;
 			}
 			case Types.NUMBER: {
+				/** @private */
 				this._date = new Date(date);
+				if (utc) {
+					this._date.setTime(date - _convertOffsetToMilliseconds(this._date, locale));
+				}
 				break;
 			}
 			case Types.ARRAY: {
-				--date[1];
-				this._date = _dateFromArray(date, utc);
-				break;
-			}
-			case Types.BOOLEAN: {
-				this._date = new Date();
-				utc = date;
+				/** @private */
+				this._date = _dateFromArray([...date], utc);
 				break;
 			}
 			case Types.UNDEFINED: case Types.NULL: {
+				/** @private */
 				this._date = new Date();
+				if (utc) {
+					this._date.setTime(+this._date - _convertOffsetToMilliseconds(this._date, locale));
+				}
 				break;
 			}
 			default: this._date = new Date('');
 		}
 
+		/** @private */
 		this._utc = utc;
+		/** @private */
 		this._valid = this._date.toString() !== INVALID_DATE;
 	}
 
+	/**
+	 * Static access to create a {@link Locale} instance.
+	 */
 	static Locale = Locale;
+
+	/**
+	 * Static access to create a {@link Duration} instance.
+	 */
 	static Duration = Duration;
+
+	/**
+	 * Static access to date/time patterns used for formatting.
+	 */
 	static patterns = dateTimePatterns;
+
+	/**
+	 * Static access to date/time fields for getting/setting values.
+	 */
 	static fields = dateTimeFields;
+
+	/**
+	 * Static access to date/time units.
+	 */
+	static units = dateTimeUnits;
+
+	/**
+	 * Static access to date/time periods when calculating the difference between 2 dates.
+	 */
 	static periods = dateTimePeriods;
+
+	/**
+	 * Static access to time zone formats when retrieving time zone information.
+	 */
 	static timeZoneFormats = i18n.timeZoneFormats;
 
 	/**
+	 * Adds a new {@link Locale} to the list of available Locales. If one already exists with the specified name, it will be replaced.
 	 *
 	 * @param {Locale} locale
+	 * @param {boolean} [setAsDefault]
 	 */
-	static addLocale(locale) {
+	static addLocale(locale, setAsDefault = false) {
 		const { name, ...rest } = locale;
 		i18n.locales[name] = rest;
+		if (setAsDefault) {
+			i18n.defaultLocale = locale;
+		}
 	}
 
 	/**
-	 * Creates a DateTime object in UTC mode
+	 * Sets the default locale if it has been added to the list of locales.
 	 *
-	 * @memberOf DateTime
-	 * @param {string|number|Date|DateTime} [date]
+	 * @param {string} locale
+	 */
+	static setDefaultLocale(locale) {
+		if (i18n.locales[locale]) {
+			i18n.defaultLocale = locale;
+		}
+	}
+
+	/**
+	 * Creates a {@link DateTime} object in UTC mode.
+	 *
+	 * @param {string|number|Date} [date]
 	 * @param {string} [pattern]
 	 * @returns {DateTime}
 	 */
@@ -92,7 +154,6 @@ class DateTime {
 	/**
 	 * Parses the provided date to a DateTime object or null if the date is invalid.
 	 *
-	 * @memberOf DateTime
 	 * @param {string} date
 	 * @param {string} pattern
 	 * @returns {DateTime}
@@ -104,64 +165,94 @@ class DateTime {
 	/**
 	 * Returns a valid date or null otherwise
 	 *
-	 * @param {string|number|Date|DateTime} date
+	 * @param {string|number|Date} date
 	 * @param {Object} [config]
 	 * @param {string} config.pattern
 	 * @param {boolean} config.utc
+	 * @param {string} config.locale
 	 * @returns {DateTime|null}
 	 */
-	static orNull(date, { pattern, utc } = {}) {
-		const dateTime = new DateTime(date, { pattern, utc });
+	static orNull(date, { pattern, utc, locale } = {}) {
+		const dateTime = new DateTime(date, { pattern, utc, locale });
 		return dateTime.isValid() ? dateTime : null;
 	}
 
 	/**
+	 * Returns the minimum date from the specified dates.
 	 *
 	 * @param  {...DateTime} dates
-	 * @returns
+	 * @returns {DateTime}
 	 */
 	static min(...dates) {
 		return dates.reduce((a, b) => a < b ? a : b);
 	}
 
 	/**
+	 * Returns the maximum date from the specified dates.
 	 *
 	 * @param  {...DateTime} dates
-	 * @returns
+	 * @returns {DateTime}
 	 */
 	static max(...dates) {
 		return dates.reduce((a, b) => a < b ? b : a);
 	}
 
-	local() {
-		if (!this._utc) {
-			return this;
-		}
+	/**
+	 * Create a DateTime instance at the start of a unit of time.
+	 *
+	 * @param {string} unit
+	 * @param {boolean} utc
+	 * @returns {DateTime}
+	 */
+	static startOf(unit, utc = false) {
+		const dateTime = new DateTime(null, { utc });
 
-		const dateTime = new DateTime(this, { utc: false });
-		// Ignore JavaScript's offset for ancient dates and calculate the milliseconds from the difference between the current offset and the value from the locale string
-		if (dateTime._date.getTimezoneOffset() % 60 !== 0) {
-			dateTime._date.setMilliseconds(dateTime.getMilliseconds() - dateTime.getTimezoneOffset() * unitsInMilliseconds.MINUTES - _convertOffsetToMilliseconds(dateTime._date, dateTime._locale.name));
-		}
-
-		return dateTime;
-	}
-
-	utc() {
-		if (this._utc) {
-			return this;
-		}
-
-		const dateTime = new DateTime(this, { utc: true });
-		// Ignore JavaScript's offset for ancient dates and calculate the milliseconds from the difference between the current offset and the value from the locale string
-		if (dateTime._date.getTimezoneOffset() % 60 !== 0) {
-			dateTime._date.setUTCMilliseconds(dateTime.getMilliseconds() + this.getTimezoneOffset() * unitsInMilliseconds.MINUTES + _convertOffsetToMilliseconds(dateTime._date, dateTime._locale.name));
-		}
+		_startOf(dateTime._date, unit, utc);
 
 		return dateTime;
 	}
 
 	/**
+	 * Create a new DateTime instance at the start of a unit of time.
+	 *
+	 * @param {string} unit
+	 * @returns {DateTime}
+	 */
+	startOf(unit) {
+		const dateTime = this.clone();
+
+		_startOf(dateTime._date, unit, dateTime._utc);
+
+		return dateTime;
+	}
+
+	/**
+	 * Converts a UTC date to a local date in the current time zone.
+	 *
+	 * @returns {DateTime}
+	 */
+	local() {
+		if (!this._utc) {
+			return this;
+		}
+
+		const dateTime = new DateTime(this._date);
+		dateTime._date.setTime(+dateTime._date + _convertOffsetToMilliseconds(dateTime._date, dateTime._locale));
+
+		return dateTime;
+	}
+
+	/**
+	 * Converts a local date to a UTC date.
+	 *
+	 * @returns {DateTime}
+	 */
+	utc() {
+		return this._utc ? this : new DateTime(this._date, { utc: true });
+	}
+
+	/**
+	 * Adds the value to the date for the specified date/time period.
 	 *
 	 * @param {number|Duration} value
 	 * @param {Period|String} [period]
@@ -171,6 +262,7 @@ class DateTime {
 	}
 
 	/**
+	 * Subtracts the value from the date for the specified date/time period.
 	 *
 	 * @param {number|Duration} value
 	 * @param {Object|String} [period]
@@ -180,6 +272,7 @@ class DateTime {
 	}
 
 	/**
+	 * Calculates the difference between dates as a Duration.
 	 *
 	 * @param {DateTime} dateTime
 	 * @returns {Duration}
@@ -189,6 +282,7 @@ class DateTime {
 	}
 
 	/**
+	 * Calculates the difference between two dates for the specified date/time period.
 	 *
 	 * @param {DateTime} dateTime
 	 * @param {Period} [period]
@@ -211,6 +305,7 @@ class DateTime {
 	}
 
 	/**
+	 * Sets the value for the specified field and returns a new DateTime instance.
 	 *
 	 * @param {string} field
 	 * @param {number} value
@@ -223,6 +318,7 @@ class DateTime {
 	}
 
 	/**
+	 * Sets the year and returns a new DateTime instance.
 	 *
 	 * @param {number} value
 	 * @returns {DateTime}
@@ -295,7 +391,7 @@ class DateTime {
 	}
 
 	setLocale(locale) {
-		return new DateTime(this, { locale });
+		return new DateTime(this._date, { locale });
 	}
 
 	/**
@@ -367,8 +463,8 @@ class DateTime {
 	 *
 	 * @returns {number}
 	 */
-	getTimezoneOffset() {
-		return this._utc ? 0 : Math.round(_get(this._date, DateTime.fields.TIMEZONE_OFFSET) / 60) * 60;
+	getTimeZoneOffset() {
+		return this._utc ? 0 : Math.round(this._date.getTimezoneOffset() / 60) * 60;
 	}
 
 	getLocale() {
@@ -376,12 +472,13 @@ class DateTime {
 	}
 
 	getDaysInMonth() {
-		const year = this.getYear();
 		const month = this.getMonth();
+		const year = this.getYear();
+
 		return month === 2 ? year & 3 || !(year % 25) && year & 15 ? 28 : 29 : 30 + (month + (month >> 3) & 1);
 	}
 
-	getTimezone(format = DateTime.timeZoneFormats.SHORT) {
+	getTimeZone(format = DateTime.timeZoneFormats.SHORT) {
 		return this._valid ? this._locale.timeZone.name[format] : undefined;
 	}
 
@@ -424,6 +521,17 @@ class DateTime {
 	 */
 	equals(dateTime) {
 		return +this._date === +dateTime._date;
+	}
+
+	/**
+	 * Duplicates the existing {@link DateTime} as a new instance.
+	 *
+	 * @returns {DateTime}
+	 */
+	clone() {
+		const dateTime = new DateTime(+this._date, { locale: this._locale.name });
+		dateTime._utc = this._utc;
+		return dateTime;
 	}
 
 	/**
@@ -487,7 +595,7 @@ const _format = (dateTime, pattern) => {
 	const [ year, month, day, hours, minutes, seconds, milliseconds, offset, dayOfTheWeek ] = dateTimeFieldValues.map((field) => {
 		switch(field) {
 			case DateTime.fields.MONTH: return dateTime.get(field) - 1;
-			case DateTime.fields.TIMEZONE_OFFSET: return dateTime.isUtc() ? 0 : dateTime.getTimezoneOffset();
+			case DateTime.fields.TIMEZONE_OFFSET: return dateTime.isUtc() ? 0 : dateTime.getTimeZoneOffset();
 			default: return dateTime.get(field);
 		}
 	});
@@ -523,20 +631,26 @@ const _format = (dateTime, pattern) => {
 	return pattern.replace(regExps.formattingTokens, ($0) => $0 in flags ? flags[$0]() : $0.slice(1, $0.length - 1));
 };
 
+const _convertOffsetToMilliseconds = (date, locale) => {
+	let convertedOffset;
+	if (date.getTimezoneOffset() % 60 === 0) {
+		convertedOffset = date.getTimezoneOffset() * unitsInMilliseconds.MINUTES;
+	} else {
+		const offset = _formatTimeZone(date, DateTime.timeZoneFormats.LONG, locale);
+		const [ sign, hours, minutes, seconds ] = offset.match(regExps.timeZoneOffset).slice(1);
+		convertedOffset = +(sign + new Duration({ hours, minutes, seconds }).asMilliseconds());
+	}
+
+	return Math.abs(convertedOffset);
+};
+
 /**
  * Converts numeric timezone offset in minutes to hours and formats it (i.e. 300 -> -0500)
  *
  * @param {number} offset
  * @returns {string}
  */
-const _formatOffset = (offset) => (offset > 0 ? '-' : '+') + `${(Math.floor(Math.abs(offset) / 60) * 100 + Math.abs(offset) % 60)}`.padStart(4, '0');
-
-const _convertOffsetToMilliseconds = (date, locale) => {
-	const offset = _formatTimeZone(date, DateTime.timeZoneFormats.LONG, locale);
-	const [ sign, hours, minutes, seconds ] = offset.match(regExps.timeZoneOffset).slice(1);
-
-	return +(sign + new Duration({ hours, minutes, seconds }).asMilliseconds());
-}
+ const _formatOffset = (offset) => (offset > 0 ? '-' : '+') + `${(Math.floor(Math.abs(offset) / 60) * 100 + Math.abs(offset) % 60)}`.padStart(4, '0');
 
 /**
  *
@@ -548,15 +662,15 @@ const _convertOffsetToMilliseconds = (date, locale) => {
  */
 const _performOperation = (dateTime, value, period, operationType) => {
 	if (Type.isDuration(value)) {
-		const date = new Date(+dateTime);
+		dateTime = dateTime.clone();
 
 		for (const period of (operationType == dateOperations.ADD ? value.periods().reverse() : value.periods())) {
 			if (period.value > 0) {
-				_set(date, period.field, _get(date, period.field, dateTime._utc) + (operationType == dateOperations.SUBTRACT ? period.value * -1 : period.value), dateTime._utc);
+				_set(dateTime._date, period.field, _get(dateTime._date, period.field, dateTime._utc) + (operationType == dateOperations.SUBTRACT ? period.value * -1 : period.value), dateTime._utc);
 			}
 		}
 
-		return new DateTime(date, { utc: dateTime._utc });
+		return dateTime;
 	}
 
 	switch(Type.of(period)) {

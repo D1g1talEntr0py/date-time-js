@@ -1,4 +1,5 @@
 import Period from './period.js';
+import { Type } from './types.js';
 
 const INVALID_DATE = 'Invalid Date';
 
@@ -58,6 +59,7 @@ const dateTimePeriods = {
 const dateTimeFieldValues = Object.values(dateTimeFields);
 const dateOperations = { ADD: 'add', SUBTRACT: 'subtract' };
 const i18n = {
+	defaultLocale: 'en-US',
 	locales: {
 		'en-US': {
 			patterns: {
@@ -84,25 +86,25 @@ const dateTimeUnits = {
 	YEAR: 'year',
 	MONTH: 'month',
 	DAY: 'day',
-	HOURS: 'hours',
-	MINUTES: 'minutes',
-	SECONDS: 'seconds',
-	MILLISECONDS: 'milliseconds',
-	ZONE_OFFSET: 'zoneOffset',
-	MERIDIEM: 'meridiem'
+	HOUR: 'hour',
+	MINUTE: 'minute',
+	SECOND: 'second',
+	MILLISECOND: 'millisecond'
 };
 
+const dateTimeTokens = Object.assign({}, dateTimeUnits, { ZONE_OFFSET: 'zoneOffset', MERIDIEM: 'meridiem' });
+
 const datePatternTokens = {
-	Y: { index: 0, unit: dateTimeUnits.YEAR, regExp: /(\d{4})/ },
-	M: { index: 1, unit: dateTimeUnits.MONTH, regExp: /(0?[1-9]|1[0-2])?/ },
-	D: { index: 2, unit: dateTimeUnits.DAY, regExp: /(0?[1-9]|[12][\d]|3[01])?/ },
-	H: { index: 3, unit: dateTimeUnits.HOURS, regExp: /([01]?[\d]|2[0-3])?/ },
-	h: { index: 3, unit: dateTimeUnits.HOURS, regExp: /(0?[1-9]|1[0-2])?/ },
-	m: { index: 4, unit: dateTimeUnits.MINUTES, regExp: /(0?[1-9]|[1-5]\d)?/ },
-	s: { index: 5, unit: dateTimeUnits.SECONDS, regExp: /(0?[1-9]|[1-5]\d)?/ },
-	S: { index: 6, unit: dateTimeUnits.MILLISECONDS, regExp: /(\d{3})?/ },
-	Z: { index: 7, unit: dateTimeUnits.ZONE_OFFSET, regExp: /([+-]\d\d:?\d\d|Z)?/ },
-	A: { index: 7, unit: dateTimeUnits.MERIDIEM, regExp: /([A|P]M)?/ }
+	Y: { index: 0, unit: dateTimeTokens.YEAR, regExp: /(\d{4})/ },
+	M: { index: 1, unit: dateTimeTokens.MONTH, regExp: /(0?[1-9]|1[0-2])?/ },
+	D: { index: 2, unit: dateTimeTokens.DAY, regExp: /(0?[1-9]|[12][\d]|3[01])?/ },
+	H: { index: 3, unit: dateTimeTokens.HOUR, regExp: /([01]?[\d]|2[0-3])?/ },
+	h: { index: 3, unit: dateTimeTokens.HOUR, regExp: /(0?[\d]|1[0-2])?/ },
+	m: { index: 4, unit: dateTimeTokens.MINUTE, regExp: /(0?[\d]|[1-5]\d)?/ },
+	s: { index: 5, unit: dateTimeTokens.SECOND, regExp: /(0?[\d]|[1-5]\d)?/ },
+	S: { index: 6, unit: dateTimeTokens.MILLISECOND, regExp: /(\d{1,3})?/ },
+	Z: { index: 7, unit: dateTimeTokens.ZONE_OFFSET, regExp: /([+-]\d\d:?\d\d|Z)?/ },
+	A: { index: 7, unit: dateTimeTokens.MERIDIEM, regExp: /([A|P]M)?/ }
 };
 
 const unitsInMilliseconds = {
@@ -111,7 +113,8 @@ const unitsInMilliseconds = {
 	DAYS: 8.64e7,
 	HOURS: 3.6e6,
 	MINUTES: 6e4,
-	SECONDS: 1e3
+	SECONDS: 1e3,
+	MILLISECONDS: 1
 };
 
 /**
@@ -120,7 +123,7 @@ const unitsInMilliseconds = {
  * @param {DateTime} d2
  * @returns {number}
  */
-const _dateComparatorDescending = (d1, d2) => d2 - d1;
+const _descendingComparator = (d1, d2) => d2 - d1;
 
 /**
  *
@@ -128,17 +131,29 @@ const _dateComparatorDescending = (d1, d2) => d2 - d1;
  * @param {boolean} utc
  * @returns {Date}
  */
-const _dateFromArray = (values, utc) => utc ? new Date(Date.UTC(...values)) : new Date(...values);
+const _dateFromArray = (values, utc = false) => {
+	// Decrement the value for month if it exists in the array because the month is 0 based in the native JavaScript Date object.
+	if (0 < values[1] && 2 < values.length) {
+		--values[1];
+	}
+	const date = utc ? new Date(Date.UTC(...values)) : new Date(...values);
+	// ლ(ಠ益ಠლ) Handle dates with a year less than 100 where the native Date constructor erroneously prefixes '19' to the year.
+	if (values[0] < 100) {
+		_set(date, dateTimeFields.YEAR, values[0], utc);
+	}
+
+	return date;
+};
 
 /**
  *
  * @param {Date} date
  * @param {string} field
- * @param {number} value
+ * @param {number|Array<number>} value
  * @param {boolean} utc
- * @returns {DateTime}
+ * @returns {number}
  */
- const _set = (date, field, value, utc) => date[`${utc ? 'setUTC' : 'set'}${field}`](value);
+ const _set = (date, field, value, utc) => date[`${utc ? 'setUTC' : 'set'}${field}`](...(Type.isArray(value) ? value : [value]));
 
 /**
  *
@@ -174,7 +189,7 @@ const _isDaylightSavingsTime = (date) => {
 	//  • (x) >> n: shifts n and fills in the n highest bits with 0s
 	//  • (-x) >> n: shifts n and fills in the n highest bits with 1s
 	return date - _date - (((((31 & - month >> 4) + (28 + _isLeapYear(date.getFullYear() | 0) & 1 - month >> 4) + (31 & 2 - month >> 4) + (30 & 3 - month >> 4) + (31 & 4 - month >> 4) + (30 & 5 - month >> 4) + (31 & 6 - month >> 4) + (31 & 7 - month >> 4) + (30 & 8 - month >> 4) + (31 & 9 - month >> 4) + (30 & 10 - month >> 4) + date.getDate() | 0) & 0xffff) * 24 * 60 + (date.getHours() & 0xff) * 60 + (date.getMinutes() & 0xff)) | 0) * 60 * 1e3 - (date.getSeconds() & 0xff) * 1e3 - date.getMilliseconds() !== 0;
-}
+};
 
 /**
  * Gets the current timezone for the current locale and formats it
@@ -184,7 +199,7 @@ const _isDaylightSavingsTime = (date) => {
  * @param {string} locale
  * @returns {string}
  */
-	const _formatTimeZone = (date, format, locale) => {
+const _formatTimeZone = (date, format, locale) => {
 	// Check to see if the JavaScript engine supports Intl.DateTimeFormat features
 	const _dateTimeFormat = Intl.DateTimeFormat(locale, { timeZoneName: format });
 	if (_dateTimeFormat.formatToParts) {
@@ -192,6 +207,37 @@ const _isDaylightSavingsTime = (date) => {
 	} else {
 		return date.toTimeString().match(format == i18n.timeZoneFormats.SHORT ? regExps.timeZoneFormatShort : regExps.timeZoneFormatLong).join('');
 	}
-}
+};
 
-export { INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateTimePeriods, dateOperations, i18n, dateTimeUnits, datePatternTokens, unitsInMilliseconds, _dateComparatorDescending, _dateFromArray, _set, _get, _isLeapYear, _isDaylightSavingsTime, _formatTimeZone };
+const _startOf = (date, unit, utc) => {
+	switch(unit) {
+		case dateTimeUnits.YEAR: {
+			_set(date, dateTimeFields.MONTH, [0, 1], utc);
+			_set(date, dateTimeFields.HOURS, [0, 0, 0, 0], utc);
+			break;
+		}
+		case dateTimeUnits.MONTH: {
+			_set(date, dateTimeFields.DAY, 1, utc);
+			_set(date, dateTimeFields.HOURS, [0, 0, 0, 0], utc);
+			break;
+		}
+		case dateTimeUnits.DAY: {
+			_set(date, dateTimeFields.HOURS, [0, 0, 0, 0], utc);
+			break;
+		}
+		case dateTimeUnits.HOUR: {
+			_set(date, dateTimeFields.MINUTES, [0, 0, 0], utc);
+			break;
+		}
+		case dateTimeUnits.MINUTE: {
+			_set(date, dateTimeFields.SECONDS, [0, 0], utc);
+			break;
+		}
+		case dateTimeUnits.SECOND: {
+			_set(date, dateTimeFields.MILLISECONDS, 0, utc);
+			break;
+		}
+	}
+};
+
+export { INVALID_DATE, regExps, dateTimePatterns, dateTimeFields, dateTimeFieldValues, dateTimePeriods, dateOperations, i18n, dateTimeUnits, dateTimeTokens, datePatternTokens, unitsInMilliseconds, _descendingComparator, _dateFromArray, _set, _get, _isLeapYear, _isDaylightSavingsTime, _formatTimeZone, _startOf };

@@ -1,6 +1,6 @@
 import Period from './period.js';
 import { Type, Types } from './types.js';
-import { dateTimeFields, _dateComparatorDescending, unitsInMilliseconds } from './constants.js';
+import { dateTimeFields, _descendingComparator, unitsInMilliseconds, _get } from './constants.js';
 
 const defaultValues = { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 };
 
@@ -54,15 +54,15 @@ export default class Duration {
 	 * @returns {Duration}
 	 */
 	static between(startDate, endDate) {
-		[ endDate, startDate ] = [startDate, endDate].sort(_dateComparatorDescending);
+		[ endDate, startDate ] = [startDate, endDate].sort(_descendingComparator);
 		const values = { ...defaultValues, total: endDate - startDate };
-		values.years = endDate.getYear() - startDate.getYear();
-		values.months = endDate.getMonth() - startDate.getMonth();
-		values.days = endDate.getDay() - startDate.getDay();
-		values.hours = endDate.getHours() - startDate.getHours();
-		values.minutes = endDate.getMinutes() - startDate.getMinutes();
-		values.seconds = endDate.getSeconds() - startDate.getSeconds();
-		values.milliseconds = endDate.getMilliseconds() - startDate.getMilliseconds();
+		values.years = _get(endDate._date, dateTimeFields.YEAR, endDate._utc) - _get(startDate._date, dateTimeFields.YEAR, startDate._utc);
+		values.months = _get(endDate._date, dateTimeFields.MONTH, endDate._utc) - _get(startDate._date, dateTimeFields.MONTH, startDate._utc);
+		values.days = _get(endDate._date, dateTimeFields.DAY, endDate._utc) - _get(startDate._date, dateTimeFields.DAY, startDate._utc);
+		values.hours = _get(endDate._date, dateTimeFields.HOURS, endDate._utc) - _get(startDate._date, dateTimeFields.HOURS, startDate._utc);
+		values.minutes = _get(endDate._date, dateTimeFields.MINUTES, endDate._utc) - _get(startDate._date, dateTimeFields.MINUTES, startDate._utc);
+		values.seconds = _get(endDate._date, dateTimeFields.SECONDS, endDate._utc) - _get(startDate._date, dateTimeFields.SECONDS, startDate._utc);
+		values.milliseconds = _get(endDate._date, dateTimeFields.MILLISECONDS, endDate._utc) - _get(startDate._date, dateTimeFields.MILLISECONDS, startDate._utc);
 
 		if (values.milliseconds < 0) {
 			values.seconds--;

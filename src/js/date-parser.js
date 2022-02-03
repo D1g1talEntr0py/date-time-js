@@ -1,7 +1,6 @@
 import DateParserPattern from './date-parser-pattern.js';
-import { dateTimePatterns, dateTimeFieldValues, datePatternTokens, dateTimeUnits, regExps, _dateFromArray } from './constants.js';
+import { dateTimePatterns, datePatternTokens, dateTimeTokens, regExps, _dateFromArray } from './constants.js';
 
-const fieldValues = dateTimeFieldValues.slice(0, 7);
 const isoParserPattern = new DateParserPattern(dateTimePatterns.ISO_DATE_TIME, regExps.isoParsingPattern);
 
 export default class DateParser {
@@ -15,14 +14,18 @@ export default class DateParser {
 	}
 
 	/**
+	 * Parse a string representation of a date and return a {@link Date} object.
+	 * The string is parsed using a {@link DateParserPattern} parameter or one from the pre-defined array
 	 *
-	 * @param {Date} date
-	 * @param {boolean} [utc]
-	 * @param {string} [pattern]
+	 * @param {string} date
+	 * @param {Object} options
+	 * @param {boolean} [options.utc]
+	 * @param {string} [options.pattern]
 	 * @returns {Date}
 	 */
-	parse(date, utc = false, pattern) {
+	parse(date, options = { utc: false, pattern: undefined }) {
 		let dateTokens, patternTokens, zoneOffset, meridiem;
+		let { pattern } = options;
 
 		for (const { tokens, regExp } of (pattern ? [new DateParserPattern(pattern)] : this._dateParsingPatterns)) {
 			dateTokens = date.match(regExp)?.slice(1);
@@ -42,18 +45,17 @@ export default class DateParser {
 			if (dateToken !== undefined) {
 				({ index, unit } = datePatternTokens[patternTokens[i]]);
 				switch(unit) {
-					case dateTimeUnits.MONTH: values[index] = dateToken - 1; break;
-					case dateTimeUnits.DAY: values[index] = +dateToken || 1; break;
-					case dateTimeUnits.MILLISECONDS: values[index] = +(dateToken)?.substring(0, 3);	break;
-					case dateTimeUnits.ZONE_OFFSET: values[index] = zoneOffset = dateToken == 'Z' ? 0 : _parseZoneOffset(dateToken); break;
-					case dateTimeUnits.MERIDIEM: values[index] = meridiem = dateToken; break;
+					case dateTimeTokens.DAY: values[index] = +dateToken || 1; break;
+					case dateTimeTokens.MILLISECOND: values[index] = +(dateToken)?.substring(0, 3);	break;
+					case dateTimeTokens.ZONE_OFFSET: values[index] = zoneOffset = dateToken == 'Z' ? 0 : _parseZoneOffset(dateToken); break;
+					case dateTimeTokens.MERIDIEM: values[index] = meridiem = dateToken; break;
 					default: values[index] = +dateToken;
 				}
 			}
 		}
 
 		if (zoneOffset !== undefined) {
-			utc = true;
+			options.utc = true;
 			if (zoneOffset != 0) {
 				// Add the offset to the milliseconds
 				values[datePatternTokens.S.index] += -(zoneOffset) * 6e4;
@@ -68,23 +70,12 @@ export default class DateParser {
 			}
 		}
 
-		let _date;
-		if (values[datePatternTokens.Y.index] < 100) {
-			_date = new Date(1970, 0, 1);
-
-			for (let i = 0, length = fieldValues.length, value; i < length; i++) {
-				value = values[i];
-				_date[`${utc ? 'setUTC' : 'set'}${fieldValues[i]}`](value);
-			}
-		} else {
-			_date = _dateFromArray(values, utc);
-		}
-
-		return _date;
+		return _dateFromArray(values, options.utc);
 	}
 }
 
 /**
+ * Convert the time zone offset from hours to the number of minutes.
  *
  * @param {string} offset
  * @returns {number}
