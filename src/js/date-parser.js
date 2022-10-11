@@ -1,16 +1,22 @@
-import DateParserPattern from './date-parser-pattern.js';
-import { dateTimePatterns, datePatternTokens, dateTimeTokens, regExps, _dateFromArray } from './constants.js';
-
-const isoParserPattern = new DateParserPattern(dateTimePatterns.ISO_DATE_TIME, regExps.isoParsingPattern);
+// @ts-nocheck
+import BaseDateTime from './base-date-time.js';
+import { _dateFromArray, _removeArrayEntryByIndex } from './utils.js';
+import { DateParsingToken, dateParserTokenMappings, regExps } from './constants.js';
 
 export default class DateParser {
+	#dateParsingPatterns;
+	#customParsingPatterns;
+
 	/**
 	 *
-	 * @param {DateParserPattern} localeParserPattern
-	 * @returns {DateParser}
+	 * @param {string} localeDatePattern
+	 * @param {string} localeTimePattern
 	 */
-	constructor(localeParserPattern) {
-		this._dateParsingPatterns = [isoParserPattern, localeParserPattern];
+	constructor(localeDatePattern, localeTimePattern) {
+		/** @type {Array<RegExp>} */
+		this.#dateParsingPatterns = [ regExps.isoParsingPattern, _fromLocalePatterns(localeDatePattern, localeTimePattern) ];
+		/** @type {Map<string, RegExp>} */
+		this.#customParsingPatterns = new Map();
 	}
 
 	/**
@@ -21,58 +27,105 @@ export default class DateParser {
 	 * @param {Object} options
 	 * @param {boolean} [options.utc]
 	 * @param {string} [options.pattern]
-	 * @returns {Date}
+	 * @returns {BaseDateTime}
 	 */
-	parse(date, options = { utc: false, pattern: undefined }) {
-		let dateTokens, patternTokens, zoneOffset, meridiem;
-		let { pattern } = options;
+	parse(date, { utc = false, pattern }) {
+		let parsedDate, dateTokens;
 
-		for (const { tokens, regExp } of (pattern ? [new DateParserPattern(pattern)] : this._dateParsingPatterns)) {
-			dateTokens = date.match(regExp)?.slice(1);
-			if (dateTokens) {
-				patternTokens = tokens;
-				break;
+		if (pattern) {
+			let dateParsingPattern = this.#customParsingPatterns.get(pattern);
+			if (!dateParsingPattern) {
+				dateParsingPattern = new RegExp(`^${_appendRegExp(_createPatternTokens(pattern))}$`);
+				this.#customParsingPatterns.set(pattern, dateParsingPattern);
+			}
+
+			dateTokens = date.match(dateParsingPattern);
+		} else {
+			for (let i = 0, length = this.#dateParsingPatterns.length; i < length; i++) {
+				if ((dateTokens = date.match(this.#dateParsingPatterns[i]))) break;
 			}
 		}
 
-		if (!dateTokens) {
-			return new Date('');
-		}
+		if (dateTokens) {
+			let { year, month, day, hour, minute, second, millisecond, zoneOffset, meridiem } = dateTokens.groups;
+			millisecond = +(millisecond?.substring(0, 3)) || 0;
 
-		const values = [0, 0, 1, 0, 0, 0, 0, 0, 0];
-		for (let i = 0, length = patternTokens.length, { index, unit } = {}, dateToken; i < length; i++) {
-			dateToken = dateTokens[i];
-			if (dateToken !== undefined) {
-				({ index, unit } = datePatternTokens[patternTokens[i]]);
-				switch(unit) {
-					case dateTimeTokens.DAY: values[index] = +dateToken || 1; break;
-					case dateTimeTokens.MILLISECOND: values[index] = +(dateToken)?.substring(0, 3);	break;
-					case dateTimeTokens.ZONE_OFFSET: values[index] = zoneOffset = dateToken == 'Z' ? 0 : _parseZoneOffset(dateToken); break;
-					case dateTimeTokens.MERIDIEM: values[index] = meridiem = dateToken; break;
-					default: values[index] = +dateToken;
+			if (zoneOffset !== undefined) {
+				utc = true;
+				if (zoneOffset !== '0') {
+					// Add the offset to the milliseconds
+					millisecond += -(zoneOffset == 'Z' ? 0 : _parseZoneOffset(zoneOffset)) * 6e4;
+				}
+			} else if (meridiem !== undefined) {
+				hour = +hour;
+				if (meridiem.toUpperCase() == 'PM' && hour < 12) {
+					// Update the hours to 24 hour format by adding 12
+					hour += 12;
+				} else if (meridiem.toUpperCase() == 'AM' && hour == 12) {
+					// Set the hours to 0 for 12am
+					hour = 0;
 				}
 			}
+
+			parsedDate = _dateFromArray([year, month, day, hour, minute, second, millisecond], utc);
 		}
 
-		if (zoneOffset !== undefined) {
-			options.utc = true;
-			if (zoneOffset != 0) {
-				// Add the offset to the milliseconds
-				values[datePatternTokens.S.index] += -(zoneOffset) * 6e4;
-			}
-		} else if (meridiem !== undefined) {
-			if (meridiem.toUpperCase() == 'PM') {
-				// Update the hours to 24 hour format by adding 12
-				values[datePatternTokens.H.index] += 12;
-			} else if (values[datePatternTokens.H.index] == 12) {
-				// Set the hours to 0 for 12am
-				values[datePatternTokens.H.index] = 0;
-			}
-		}
-
-		return _dateFromArray(values, options.utc);
+		return new BaseDateTime(parsedDate ?? new Date(''), utc);
 	}
 }
+
+/**
+ *
+ * @param {string} datePattern - The locale date pattern
+ * @param {string} timePattern - The locale time pattern
+ * @returns {RegExp}
+ */
+const _fromLocalePatterns = (datePattern, timePattern) => {
+	const tokenTransformers = {};
+	const timeTokens = _createPatternTokens(timePattern);
+	const secondsDelimiterIndex = timeTokens.lastIndexOf(DateParsingToken.SECOND) - 1;
+
+	if (!(timeTokens[secondsDelimiterIndex] in dateParserTokenMappings)) {
+		const spaceTokenIndex = timeTokens.lastIndexOf(DateParsingToken.MERIDIEM) - 1;
+		if (timeTokens[spaceTokenIndex] == ' ') {
+			_removeArrayEntryByIndex(timeTokens, spaceTokenIndex);
+		}
+
+		const timeDelimiter = timeTokens[secondsDelimiterIndex];
+		tokenTransformers[DateParsingToken.SECOND] = (regExpSource) => `(?:${timeDelimiter}${regExpSource})?`;
+		tokenTransformers[DateParsingToken.MERIDIEM] = (regExpSource) => `(?:\\s${regExpSource})?`;
+
+		_removeArrayEntryByIndex(timeTokens, secondsDelimiterIndex);
+	}
+
+	return new RegExp(`^${_appendRegExp(_createPatternTokens(datePattern))}(?:\\s${_appendRegExp(timeTokens, tokenTransformers)})?$`);
+};
+
+/**
+ * Filter out anything other than a letter, digit or underscore or the element isn't already in the resulting array.
+ *
+ * @param {string} pattern
+ * @returns {Array<string>} the unique pattern tokens
+ */
+const _createPatternTokens = (pattern) => Array.from(pattern).filter((elem, index, array) => regExps.nonWord.test(elem) || array.indexOf(elem) >= index);
+
+/**
+ *
+ * @param {Array<string>} patternTokens
+ * @param {Object} [tokenTransformers={}]
+ * @returns {string}
+ */
+const _appendRegExp = (patternTokens, tokenTransformers = {}) => {
+	let regExp = '';
+
+	for (let i = 0, length = patternTokens.length, token, regExpSource; i < length; i++) {
+		token = patternTokens[i];
+		regExpSource = dateParserTokenMappings[token]?.source;
+		regExp += tokenTransformers[token]?.(regExpSource) ?? regExpSource ?? token;
+	}
+
+	return regExp;
+};
 
 /**
  * Convert the time zone offset from hours to the number of minutes.
@@ -80,7 +133,7 @@ export default class DateParser {
  * @param {string} offset
  * @returns {number}
  */
- const _parseZoneOffset = (offset = '') => {
-	const [ hours = 0, minutes = 0 ] = offset.includes(':') ? offset.split(':').map(Number) : [ +offset / 100, undefined ];
+const _parseZoneOffset = (offset = '') => {
+	const [ hours = 0, minutes = 0 ] = offset.includes(':') ? offset.split(':').map(Number) : [ +offset / 100 ];
 	return hours * 60 + minutes;
 };

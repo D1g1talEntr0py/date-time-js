@@ -2,8 +2,11 @@
 	"cSpell.words": [
 		"browserlist",
 		"browserslist",
+		"compat",
 		"corejs",
+		"deepmerge",
 		"nocheck",
+		"Prefetch",
 		"Resig"
 	],
 	"cSpell.ignoreWords": [
@@ -28,5 +31,15 @@
 	"typescript.suggest.includeAutomaticOptionalChainCompletions": false,
 	"typescript.suggest.includeCompletionsWithClassMemberSnippets": false,
 	"typescript.suggest.includeCompletionsWithSnippetText": false,
-	"typescript.tsc.autoDetect": "off"
+	"typescript.tsc.autoDetect": "off",
+	"eslint.useESLintClass": true,
+	"eslint.probe": [
+		"javascript",
+		"html",
+		"vue",
+		"markdown"
+	],
+	"eslint.format.enable": false,
+	"eslint.lintTask.enable": true,
+	"eslint.onIgnoredFiles": "warn"
 }

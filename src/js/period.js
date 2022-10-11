@@ -1,57 +1,80 @@
-import { Type, Types } from './types.js';
+import { DateField, periodUnitFields } from './constants.js';
+/** @typedef { import('./date-time.js').default } DateTime */
 
+/**
+ * Class representation of a Period of time
+ *
+ * @author Jason DiMeo <jason.dimeo@gmail.com>
+ */
 export default class Period {
+	#value;
+	#unit;
+	#field;
+
+	/**
+	 * Create a new {@link Period} instance
+	 *
+	 * @param {number} value
+	 * @param {string} unit
+	 */
+	constructor(value, unit) {
+		this.#value = value;
+		this.#unit = periodUnitFields[unit];
+		this.#field = DateField[this.#unit];
+		Object.freeze(this);
+	}
+
 	/**
 	 *
-	 * @param {string} field
-	 * @param {number} [value]
+	 * @returns {number}
 	 */
-	constructor(field, value) {
-		this._field = field;
-		this._value = value;
-	}
-
-	get field() {
-		return this._field;
-	}
-
-	set value(value) {
-		this._value = value;
-	}
-
 	get value() {
-		return this._value;
+		return this.#value;
 	}
 
 	/**
 	 *
-	 * @param {DateTime} dateTime
-	 * @param {number} value
-	 * @returns {DateTime}
+	 * @returns {string}
 	 */
-	add(dateTime, value) {
-		return dateTime.set(this.field, dateTime.get(this.field) + value, dateTime.isUtc());
+	get unit() {
+		return this.#unit;
 	}
 
 	/**
 	 *
-	 * @param {DateTime} dateTime
-	 * @param {number} value
-	 * @returns {DateTime}
+	 * @returns {string}
 	 */
-	subtract(dateTime, value) {
+	get field() {
+		return this.#field;
+	}
+
+	/**
+	 * Adds specified value to the {@link DateTime} instance
+	 *
+	 * @param {DateTime} dateTime
+	 * @param {number} [value=this.value]
+	 * @returns {DateTime} A new instance of {@link DateTime} object with the period value added.
+	 */
+	add(dateTime, value = this.#value) {
+		return dateTime.set(this.#unit, dateTime._baseDateTime[this.#unit] + value);
+	}
+
+	/**
+	 * Subtracts specified value to the {@link DateTime} instance
+	 *
+	 * @param {DateTime} dateTime
+	 * @param {number} [value=this.value]
+	 * @returns {DateTime} A new instance of {@link DateTime} object with the period value subtracted.
+	 */
+	subtract(dateTime, value = this.#value) {
 		return this.add(dateTime, value * -1);
 	}
 
-	toString() {
-		const [ name ] = Object.keys(this._field);
-		return name;
-	}
-
+	/**
+	 *
+	 * @returns {string}
+	 */
 	get [Symbol.toStringTag]() {
-    return Period.name;
-  }
+		return 'Period';
+	}
 }
-
-Object.defineProperty(Type, 'isPeriod', { value: (object) => object instanceof Period });
-Object.defineProperty(Types, 'PERIOD', { enumerable: true, value: Period.name });

@@ -2,13 +2,47 @@
 	"env": {
 		"browser": true,
 		"node": true,
-		"es2021": true
+		"es2022": true,
+		"jest": true
 	},
-	"extends": "eslint:recommended",
-	"parser": "@babel/eslint-parser",
+	"plugins": ["compat", "jsdoc"],
+	"extends": ["eslint:recommended", "plugin:compat/recommended", "plugin:jsdoc/recommended"],
 	"parserOptions": {
-		"ecmaVersion": 12,
+		"ecmaVersion": 2022,
 		"sourceType": "module"
 	},
-	"rules": {}
+	"rules": {
+		"no-fallthrough": "off",
+		"no-constant-condition": "off",
+		"indent": [
+			"error",
+			"tab",
+			{ "SwitchCase": 1 }
+		],
+		"linebreak-style": [
+			"error",
+			"unix"
+		],
+		"quotes": [
+			"error",
+			"single"
+		],
+		"semi": [
+			"error",
+			"always"
+		]
+	},
+	"overrides": [],
+	"settings": {
+		"jsdoc": {
+			"preferredTypes": { "object": "Object", "Iterator": "Iterator", "IterableIterator": "IterableIterator" },
+			"structuredTags": {	"template": {	"name": "namepath-defining", "type": false } },
+			"tagNamePreference": {
+				"augments": {
+					"message": "@extends is to be used over @augments as it is more evocative of classes than @augments",
+					"replacement": "extends"
+				}
+			}
+		}
+	}
 }

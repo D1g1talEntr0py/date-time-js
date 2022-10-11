@@ -1,40 +1,74 @@
 {
-	"name": "date-time-js",
-	"version": "1.1",
+	"name": "@d1g1tal/date-time-js",
+	"version": "2.0",
 	"author": {
 		"name": "Jason DiMeo"
 	},
+	"license": "MIT",
 	"description": "JavaScript DateTime Library",
 	"scripts": {
 		"build": "npm run update-browserslist && webpack --mode=production",
-		"build-native": "webpack --mode=production --env esVersion=2021",
-		"start": "webpack --mode=development --env esVersion=2021",
+		"build:esm": "npm run build --config-name=esm",
+		"build:umd": "npm run build --config-name=umd",
+		"lint": "eslint --ext .js --fix --ignore-path .gitignore .",
 		"test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
 		"update-browserslist": "npx browserslist@latest --update-db"
 	},
 	"type": "module",
-	"module": "src/js/index.js",
+	"main": "/src/js/index/umd.js",
+	"module": "/src/js/index/esm.js",
+	"files": [
+		"/src",
+		"/dist"
+	],
+	"keywords": [
+		"date-time-js",
+		"date",
+		"time",
+		"immutable"
+	],
 	"devDependencies": {
-		"@babel/cli": "7.16.8",
-		"@babel/core": "7.16.12",
-		"@babel/eslint-parser": "7.16.5",
-		"@babel/preset-env": "7.16.11",
-		"@babel/register": "7.16.9",
-		"babel-loader": "8.2.3",
-		"browserslist": "4.19.1",
-		"core-js": "3.21.0",
-		"jest": "27.4.7",
-		"mockdate": "3.0.5",
-		"terser-webpack-plugin": "5.3.1",
-		"webpack": "5.68.0",
-		"webpack-cli": "4.9.2"
+		"@babel/cli": "^7.19.3",
+		"@babel/core": "^7.19.3",
+		"@babel/eslint-parser": "^7.19.1",
+		"@babel/preset-env": "^7.19.4",
+		"babel-loader": "^8.2.5",
+		"browserslist": "^4.21.4",
+		"copy-webpack-plugin": "^11.0.0",
+		"eslint": "^8.25.0",
+		"eslint-plugin-compat": "^4.0.2",
+		"eslint-plugin-jsdoc": "^39.3.6",
+		"jest": "^29.1.2",
+		"terser-webpack-plugin": "^5.3.6",
+		"webpack": "^5.74.0",
+		"webpack-cli": "^4.10.0"
 	},
 	"browserslist": [
-		"defaults",
-		"maintained node versions"
+		">= 0.5%",
+		"last 2 major versions",
+		"Firefox ESR",
+		"not dead",
+		"not ios_saf < 15"
 	],
 	"jest": {
 		"verbose": true,
-		"transform": {}
+		"fakeTimers": {
+			"enableGlobally": true
+		},
+		"transform": {},
+		"coverageDirectory": "./tests/coverage/",
+		"coveragePathIgnorePatterns": [
+			"<rootDir>/src/js/index/esm.js",
+			"<rootDir>/src/js/index/umd.js",
+			"/node_modules/"
+		],
+		"collectCoverage": true,
+		"collectCoverageFrom": [
+			"src/**/*"
+		]
+	},
+	"dependencies": {
+		"@d1g1tal/chrysalis": "^1.1.2",
+		"dayjs": "1.11.5"
 	}
 }

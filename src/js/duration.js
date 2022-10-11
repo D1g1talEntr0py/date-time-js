@@ -1,31 +1,46 @@
+// @ts-nocheck
 import Period from './period.js';
-import { Type, Types } from './types.js';
-import { dateTimeFields, _descendingComparator, unitsInMilliseconds, _get } from './constants.js';
+import { PeriodUnit, MillisecondsIn } from './constants.js';
+/** @typedef {import('./date-time.js').default} DateTime */
 
-const defaultValues = { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 };
-
+/**
+ * Class representation of a Duration *
+ *
+ * @author Jason DiMeo <jason.dimeo@gmail.com>
+ */
 export default class Duration {
+	#years;
+	#months;
+	#days;
+	#hours;
+	#minutes;
+	#seconds;
+	#milliseconds;
+	#total;
+
 	/**
+	 * Creates a new {@link Duration} instance
 	 *
 	 * @param {Object} config
-	 * @param {number} [config.years]
-	 * @param {number} [config.months]
-	 * @param {number} [config.days]
-	 * @param {number} [config.hours]
-	 * @param {number} [config.minutes]
-	 * @param {number} [config.seconds]
-	 * @param {number} [config.milliseconds]
+	 * @param {number} [config.years=0]
+	 * @param {number} [config.months=0]
+	 * @param {number} [config.days=0]
+	 * @param {number} [config.hours=0]
+	 * @param {number} [config.minutes=0]
+	 * @param {number} [config.seconds=0]
+	 * @param {number} [config.milliseconds=0]
 	 * @param {number} [config.total]
 	 */
 	constructor({ years = 0, months = 0, days = 0, hours = 0, minutes = 0, seconds = 0, milliseconds = 0, total } = {}) {
-		this._years = new Period(dateTimeFields.YEAR, years);
-		this._months = new Period(dateTimeFields.MONTH, months);
-		this._days = new Period(dateTimeFields.DAY, days);
-		this._hours = new Period(dateTimeFields.HOURS, hours);
-		this._minutes = new Period(dateTimeFields.MINUTES, minutes);
-		this._seconds = new Period(dateTimeFields.SECONDS, seconds);
-		this._milliseconds = new Period(dateTimeFields.MILLISECONDS, milliseconds);
-		this._total = total ?? milliseconds + seconds * unitsInMilliseconds.SECONDS + minutes * unitsInMilliseconds.MINUTES + hours * unitsInMilliseconds.HOURS + days * unitsInMilliseconds.DAYS + months * unitsInMilliseconds.MONTHS + years * unitsInMilliseconds.YEARS;
+		this.#years = new Period(years, PeriodUnit.YEARS);
+		this.#months = new Period(months, PeriodUnit.MONTHS);
+		this.#days = new Period(days, PeriodUnit.DAYS);
+		this.#hours = new Period(hours, PeriodUnit.HOURS);
+		this.#minutes = new Period(minutes, PeriodUnit.MINUTES);
+		this.#seconds = new Period(seconds, PeriodUnit.SECONDS);
+		this.#milliseconds = new Period(milliseconds, PeriodUnit.MILLISECONDS);
+		this.#total = total ?? milliseconds + seconds * MillisecondsIn.SECONDS + minutes * MillisecondsIn.MINUTES + hours * MillisecondsIn.HOURS + days * MillisecondsIn.DAYS + months * MillisecondsIn.MONTHS + years * MillisecondsIn.YEARS;
+		Object.freeze(this);
 	}
 
 	/**
@@ -34,17 +49,15 @@ export default class Duration {
 	 * @returns {Duration}
 	 */
 	static fromTimestamp(timestamp) {
-		const total = timestamp;
-		const values = { ...defaultValues };
+		const values = {};
+		const total = timestamp = Math.abs(timestamp);
 
-		let unitInMilliseconds;
-		for (const unit of Object.keys(values)) {
-			unitInMilliseconds = unitsInMilliseconds[unit.toUpperCase()];
-			values[unit] = Math.floor(timestamp / unitInMilliseconds);
+		for (const [ unit, unitInMilliseconds ] of Object.entries(MillisecondsIn)) {
+			values[unit.toLowerCase()] = Math.floor(timestamp / unitInMilliseconds);
 			timestamp %= unitInMilliseconds;
 		}
 
-		return new Duration({ ...values, total: total });
+		return new Duration({ ...values, total });
 	}
 
 	/**
@@ -54,15 +67,16 @@ export default class Duration {
 	 * @returns {Duration}
 	 */
 	static between(startDate, endDate) {
-		[ endDate, startDate ] = [startDate, endDate].sort(_descendingComparator);
-		const values = { ...defaultValues, total: endDate - startDate };
-		values.years = _get(endDate._date, dateTimeFields.YEAR, endDate._utc) - _get(startDate._date, dateTimeFields.YEAR, startDate._utc);
-		values.months = _get(endDate._date, dateTimeFields.MONTH, endDate._utc) - _get(startDate._date, dateTimeFields.MONTH, startDate._utc);
-		values.days = _get(endDate._date, dateTimeFields.DAY, endDate._utc) - _get(startDate._date, dateTimeFields.DAY, startDate._utc);
-		values.hours = _get(endDate._date, dateTimeFields.HOURS, endDate._utc) - _get(startDate._date, dateTimeFields.HOURS, startDate._utc);
-		values.minutes = _get(endDate._date, dateTimeFields.MINUTES, endDate._utc) - _get(startDate._date, dateTimeFields.MINUTES, startDate._utc);
-		values.seconds = _get(endDate._date, dateTimeFields.SECONDS, endDate._utc) - _get(startDate._date, dateTimeFields.SECONDS, startDate._utc);
-		values.milliseconds = _get(endDate._date, dateTimeFields.MILLISECONDS, endDate._utc) - _get(startDate._date, dateTimeFields.MILLISECONDS, startDate._utc);
+		// Ensure correct order of dates
+		[ endDate, startDate ] = [startDate, endDate].sort((d1, d2) => d2 - d1);
+		const values = { total: endDate - startDate };
+		values.years = endDate._baseDateTime.year - startDate._baseDateTime.year;
+		values.months = endDate._baseDateTime.month - startDate._baseDateTime.month;
+		values.days = endDate._baseDateTime.day - startDate._baseDateTime.day;
+		values.hours = endDate._baseDateTime.hour - startDate._baseDateTime.hour;
+		values.minutes = endDate._baseDateTime.minute - startDate._baseDateTime.minute;
+		values.seconds = endDate._baseDateTime.second - startDate._baseDateTime.second;
+		values.milliseconds = endDate._baseDateTime.millisecond - startDate._baseDateTime.millisecond;
 
 		if (values.milliseconds < 0) {
 			values.seconds--;
@@ -97,66 +111,138 @@ export default class Duration {
 		return new Duration(values);
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	get years() {
-		return this._years.value;
+		return this.#years.value;
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	get months() {
-		return this._months.value;
+		return this.#months.value;
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	get days() {
-		return this._days.value;
+		return this.#days.value;
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	get hours() {
-		return this._hours.value;
+		return this.#hours.value;
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	get minutes() {
-		return this._minutes.value;
+		return this.#minutes.value;
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	get seconds() {
-		return this._seconds.value;
+		return this.#seconds.value;
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	get milliseconds() {
-		return this._milliseconds.value;
+		return this.#milliseconds.value;
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	asYears() {
-		return Math.floor(this._total / unitsInMilliseconds.YEARS);
+		return Math.floor(this.#total / MillisecondsIn.YEARS);
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	asMonths() {
-		return Math.floor(this._total / unitsInMilliseconds.MONTHS);
+		return Math.floor(this.#total / MillisecondsIn.MONTHS);
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	asWeeks() {
-		return Math.floor(this._total / unitsInMilliseconds.WEEKS);
+		return Math.floor(this.#total / MillisecondsIn.WEEKS);
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	asDays() {
-		return Math.floor(this._total / unitsInMilliseconds.DAYS);
+		return Math.floor(this.#total / MillisecondsIn.DAYS);
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	asHours() {
-		return Math.floor(this._total / unitsInMilliseconds.HOURS);
+		return Math.floor(this.#total / MillisecondsIn.HOURS);
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	asMinutes() {
-		return Math.floor(this._total / unitsInMilliseconds.MINUTES);
+		return Math.floor(this.#total / MillisecondsIn.MINUTES);
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	asSeconds() {
-		return Math.floor(this._total / unitsInMilliseconds.SECONDS);
+		return Math.floor(this.#total / MillisecondsIn.SECONDS);
 	}
 
+	/**
+	 *
+	 * @returns {number}
+	 */
 	asMilliseconds() {
-		return this._total;
+		return this.#total;
 	}
 
+	/**
+	 *
+	 * @returns {Period}
+	 */
+	asPeriod() {
+		return new Period(this.#total, PeriodUnit.MILLISECONDS);
+	}
+
+	/**
+	 *
+	 * @returns {Duration}
+	 */
 	normalize() {
 		const values = this.values();
 		if (values.milliseconds >= 1e3) {
@@ -192,18 +278,27 @@ export default class Duration {
 		return new Duration(values);
 	}
 
+	/**
+	 *
+	 * @returns {Array<Period>} The periods for this duration.
+	 */
 	periods() {
-		return [ this._years,	this._months,	this._days,	this._hours, this._minutes,	this._seconds, this._milliseconds ];
+		return [ this.#years,	this.#months,	this.#days,	this.#hours, this.#minutes,	this.#seconds, this.#milliseconds ];
 	}
 
+	/**
+	 *
+	 * @returns {Object.<string, number>}
+	 */
 	values() {
-		return { years: this._years.value, months: this._months.value, days: this._days.value, hours: this._hours.value, minutes: this._minutes.value, seconds: this._seconds.value, milliseconds: this._milliseconds.value };
+		return { years: this.#years.value, months: this.#months.value, days: this.#days.value, hours: this.#hours.value, minutes: this.#minutes.value, seconds: this.#seconds.value, milliseconds: this.#milliseconds.value };
 	}
 
+	/**
+	 *
+	 * @returns {string}
+	 */
 	get [Symbol.toStringTag]() {
-    return Duration.name;
-  }
+		return 'Duration';
+	}
 }
-
-Object.defineProperty(Type, 'isDuration', { value: (object) => object instanceof Duration });
-Object.defineProperty(Types, 'DURATION', { enumerable: true, value: Duration.name });
