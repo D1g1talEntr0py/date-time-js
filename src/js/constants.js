@@ -1,3 +1,4 @@
+// eslint-disable-next-line jsdoc/valid-types
 /** @typedef { import('./locale.js').default } Locale */
 /** @typedef {('short'|'long')} TimeZoneFormat */
 

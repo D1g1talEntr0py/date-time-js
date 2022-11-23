@@ -1,6 +1,6 @@
 {
 	"name": "@d1g1tal/date-time-js",
-	"version": "2.0",
+	"version": "2.0.1",
 	"author": {
 		"name": "Jason DiMeo"
 	},
@@ -29,31 +29,30 @@
 	],
 	"devDependencies": {
 		"@babel/cli": "^7.19.3",
-		"@babel/core": "^7.19.3",
+		"@babel/core": "^7.20.2",
 		"@babel/eslint-parser": "^7.19.1",
-		"@babel/preset-env": "^7.19.4",
-		"babel-loader": "^8.2.5",
+		"@babel/preset-env": "^7.20.2",
+		"babel-loader": "^9.1.0",
 		"browserslist": "^4.21.4",
 		"copy-webpack-plugin": "^11.0.0",
-		"eslint": "^8.25.0",
+		"eslint": "^8.28.0",
 		"eslint-plugin-compat": "^4.0.2",
-		"eslint-plugin-jsdoc": "^39.3.6",
-		"jest": "^29.1.2",
+		"eslint-plugin-jsdoc": "^39.6.2",
+		"jest": "^29.3.1",
 		"terser-webpack-plugin": "^5.3.6",
-		"webpack": "^5.74.0",
-		"webpack-cli": "^4.10.0"
+		"webpack": "^5.75.0",
+		"webpack-cli": "^5.0.0"
 	},
 	"browserslist": [
-		">= 0.5%",
-		"last 2 major versions",
-		"Firefox ESR",
-		"not dead",
-		"not ios_saf < 15"
+		"defaults",
+		"not ios_saf < 15",
+		"not op_mini all"
 	],
 	"jest": {
 		"verbose": true,
 		"fakeTimers": {
-			"enableGlobally": true
+			"enableGlobally": true,
+			"legacyFakeTimers": true
 		},
 		"transform": {},
 		"coverageDirectory": "./tests/coverage/",
@@ -68,7 +67,7 @@
 		]
 	},
 	"dependencies": {
-		"@d1g1tal/chrysalis": "^1.1.2",
-		"dayjs": "1.11.5"
+		"@d1g1tal/chrysalis": "^1.1.8",
+		"dayjs": "^1.11.6"
 	}
 }

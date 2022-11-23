@@ -1,7 +1,7 @@
-import DateParser from './date-parser.js';
-import DateFormatter from './date-formatter.js';
-import PatternFormat from './pattern-format.js';
 import { i18n } from './constants.js';
+import DateFormatter from './date-formatter.js';
+import DateParser from './date-parser.js';
+import PatternFormat from './pattern-format.js';
 
 /**
  *
@@ -148,7 +148,7 @@ export default class Locale {
 
 	/**
 	 *
-	 * @returns {Function}
+	 * @returns {function(number): number}
 	 */
 	get ordinal() {
 		return this.#ordinal;

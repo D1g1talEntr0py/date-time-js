@@ -28,7 +28,7 @@ export default class TimeZone {
 	 *
 	 * @returns {number}
 	 */
-	 get offset() {
+	get offset() {
 		return this.#offset ??= this.#date.getTimezoneOffset();
 	}
 
@@ -37,7 +37,7 @@ export default class TimeZone {
 	 * @param {string} timeZoneFormat
 	 * @returns {string}
 	 */
-	 getName(timeZoneFormat) {
+	getName(timeZoneFormat) {
 		return this.#names[timeZoneFormat] ??= this.#formatters[timeZoneFormat].formatToParts(this.#date).find((part) => part.type == 'timeZoneName')?.value;
 	}
 }

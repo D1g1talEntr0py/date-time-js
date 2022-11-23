@@ -1,10 +1,8 @@
+import { describe, expect, it, test } from '@jest/globals';
 import BaseDateTime from '../src/js/base-date-time.js';
-import { expect, describe, it, test } from '@jest/globals';
 import { DateField, DateTimeUnit } from '../src/js/constants.js';
-import { _dateFromArray, _set, _get, _startOf, _splice } from '../src/js/utils.js';
-import { DateTime, Locale, Duration, Period } from './module.js';
-import localeOptions from '../src/js/locales/en-US.js';
-import { _checkDateProperties, _createCurrentUtcDate, _createDatesFromArray, _isDST } from './test.utilities.js';
+import { _get, _set, _splice, _startOf } from '../src/js/utils.js';
+import { _checkDateProperties, _createCurrentUtcDate, _createDatesFromArray } from './test.utilities.js';
 
 describe('_set:Date mutated from internal function should match date mutated from native method', () => {
 	const year = 2048;
@@ -126,7 +124,7 @@ describe('Date from Array', () => {
 	const { date, dateTime } = _createDatesFromArray([ 1942, 8, 2, 19, 4, 58, 205 ]);
 
 	test('DateTime value equals native date', () => expect(dateTime.valueOf()).toEqual(date.valueOf()));
-	test('DateTime internal date equals native date', () => expect(dateTime._baseDateTime.date).toStrictEqual(date));
+	test('DateTime internal date equals native date', () => expect(dateTime.toDate()).toStrictEqual(date));
 	test('Method values equal corresponding value from native date method', () => _checkDateProperties('Date from Array properties', dateTime, date));
 });
 
@@ -134,7 +132,7 @@ describe('UTC Date from Array', () => {
 	const { date, dateTime } = _createDatesFromArray([ 1942, 8, 2, 19, 4, 58, 205 ], true);
 
 	test('DateTime value equals native date', () => expect(dateTime.valueOf()).toEqual(date.valueOf()));
-	test('DateTime internal date equals native date', () => expect(dateTime._baseDateTime.date).toStrictEqual(date));
+	test('DateTime internal date equals native date', () => expect(dateTime.toDate()).toStrictEqual(date));
 	test('Method values equal corresponding value from native date method', () => _checkDateProperties('UTC Date from Array properties', dateTime, date));
 });
 
@@ -142,7 +140,7 @@ describe('Ancient Date from Array', () => {
 	const { date, dateTime } = _createDatesFromArray([ 86, 2, 28, 4, 12, 23, 732 ]);
 
 	test('DateTime value equals native date', () => expect(dateTime.valueOf()).toEqual(date.valueOf()));
-	test('DateTime internal date equals native date', () => expect(dateTime._baseDateTime.date).toStrictEqual(date));
+	test('DateTime internal date equals native date', () => expect(dateTime.toDate()).toStrictEqual(date));
 	test('Method values equal corresponding value from native date method', () => _checkDateProperties('Ancient Date from Array properties', dateTime, date));
 });
 
@@ -150,7 +148,7 @@ describe('Ancient UTC Date from Array', () => {
 	const { date, dateTime } = _createDatesFromArray([ 86, 2, 28, 4, 12, 23, 732 ], true);
 
 	test('DateTime value equals native date', () => expect(dateTime.valueOf()).toEqual(date.valueOf()));
-	test('DateTime internal date equals native date', () => expect(dateTime._baseDateTime.date).toStrictEqual(date));
+	test('DateTime internal date equals native date', () => expect(dateTime.toDate()).toStrictEqual(date));
 	test('Method values equal corresponding value from native date method', () => _checkDateProperties('Ancient UTC Date from Array properties', dateTime, date));
 });
 

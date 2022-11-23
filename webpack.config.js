@@ -1,8 +1,7 @@
-// @ts-nocheck
 import path from 'path';
 import TerserPlugin from 'terser-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
-import { _merge } from './webpack.config.utils.js';
+import { _objectMerge } from '@d1g1tal/chrysalis';
 
 const configurations = new Map([
 	['esm', {
@@ -53,13 +52,14 @@ const _mergeConfiguration = (configuration, esVersion, moduleType) => {
 		plugins: []
 	};
 
-	return _merge({}, commonConfig, configuration);
+	return _objectMerge(commonConfig, configuration);
 };
 
 /**
  * @param {Object} env
  * @param {number} env.esVersion
  * @param {string} env.transpile
+ * @returns {Array<Object>} The resulting configuration for webpack.
  */
 export default ({ esVersion = 2022, transpile = 'true' }) => {
 	const config = [];

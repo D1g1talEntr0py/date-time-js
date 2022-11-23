@@ -40,8 +40,8 @@ export default class BaseDateTime {
 
 	/**
 	 *
-	 * @param {(Date|undefined)} [date=new Date()]
-	 * @param {boolean} [utc=false]
+	 * @param {Date} [date = new Date()]
+	 * @param {boolean} [utc = false]
 	 */
 	constructor(date = new Date(), utc = false) {
 		this.#date = date;

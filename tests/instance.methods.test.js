@@ -1,7 +1,6 @@
+import { describe, expect, it, test } from '@jest/globals';
 import { DateTime } from './module.js?locale=en-US&global=true';
-import { _dateFromArray } from '../src/js/utils.js';
 import { _createCurrentUtcDate, _createDatesFromArray } from './test.utilities.js';
-import { expect, describe, it, test } from '@jest/globals';
 
 describe('Start of', () => {
 	const parsableDate = '2014-06-05T19:42:54.309Z';
@@ -40,10 +39,11 @@ describe('local', () => {
 
 describe('utc', () => {
 	const currentDateTime = new DateTime();
+	const currentUtcDate = _createCurrentUtcDate();
 
 	test('Method returns new instance of DateTime object ensuring immutability', () => expect(currentDateTime.utc()).not.toBe(currentDateTime));
-	test('Convert Current DateTime to UTC DateTime', () => expect(currentDateTime.utc()).toEqual(new DateTime(_createCurrentUtcDate(), { utc: true })));
-	test('Convert Current DateTime to UTC Date', () => expect(currentDateTime.utc().toDate()).toEqual(_createCurrentUtcDate()));
+	test('Convert Current DateTime to UTC DateTime', () => expect(currentDateTime.utc()).toEqual(new DateTime(currentUtcDate, { utc: true })));
+	test('Convert Current DateTime to UTC Date', () => expect(currentDateTime.utc().toDate()).toEqual(currentUtcDate));
 
 	const pastDate = new Date(2011, 10, 5, 12, 45, 12, 901);
 	const pastDateTime = new DateTime([2011, 11, 5, 12, 45, 12, 901]);

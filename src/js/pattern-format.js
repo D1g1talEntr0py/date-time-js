@@ -1,9 +1,8 @@
-// @ts-nocheck
 export default class PatternFormat {
 	/**
 	 * Creates the locale patterns for parsing dates in based on the possible pattern tokens provided.
 	 *
-	 * @param {Object.<string, string>} patternTokens
+	 * @param {Object.<string, string>} patternTokens The locale pattern tokens to use for formatting.
 	 * @author Jason DiMeo <jason.dimeo@gmail.com>
 	 */
 	constructor(patternTokens) {

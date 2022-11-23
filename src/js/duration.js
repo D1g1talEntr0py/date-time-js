@@ -1,6 +1,6 @@
 // @ts-nocheck
+import { MillisecondsIn, PeriodUnit } from './constants.js';
 import Period from './period.js';
-import { PeriodUnit, MillisecondsIn } from './constants.js';
 /** @typedef {import('./date-time.js').default} DateTime */
 
 /**
@@ -70,13 +70,13 @@ export default class Duration {
 		// Ensure correct order of dates
 		[ endDate, startDate ] = [startDate, endDate].sort((d1, d2) => d2 - d1);
 		const values = { total: endDate - startDate };
-		values.years = endDate._baseDateTime.year - startDate._baseDateTime.year;
-		values.months = endDate._baseDateTime.month - startDate._baseDateTime.month;
-		values.days = endDate._baseDateTime.day - startDate._baseDateTime.day;
-		values.hours = endDate._baseDateTime.hour - startDate._baseDateTime.hour;
-		values.minutes = endDate._baseDateTime.minute - startDate._baseDateTime.minute;
-		values.seconds = endDate._baseDateTime.second - startDate._baseDateTime.second;
-		values.milliseconds = endDate._baseDateTime.millisecond - startDate._baseDateTime.millisecond;
+		values.years = endDate.getYear() - startDate.getYear();
+		values.months = endDate.getMonth() - startDate.getMonth();
+		values.days = endDate.getDay() - startDate.getDay();
+		values.hours = endDate.getHour() - startDate.getHour();
+		values.minutes = endDate.getMinute() - startDate.getMinute();
+		values.seconds = endDate.getSecond() - startDate.getSecond();
+		values.milliseconds = endDate.getMillisecond() - startDate.getMillisecond();
 
 		if (values.milliseconds < 0) {
 			values.seconds--;

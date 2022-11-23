@@ -56,7 +56,7 @@ export default class Period {
 	 * @returns {DateTime} A new instance of {@link DateTime} object with the period value added.
 	 */
 	add(dateTime, value = this.#value) {
-		return dateTime.set(this.#unit, dateTime._baseDateTime[this.#unit] + value);
+		return dateTime.set(this.#unit, dateTime.get(this.#unit) + value);
 	}
 
 	/**

@@ -1,7 +1,6 @@
-// @ts-nocheck
+import { i18n, regExps } from './constants.js';
 import PatternFormat from './pattern-format.js';
 import { _splice } from './utils.js';
-import { i18n, regExps } from './constants.js';
 /** @typedef { import('./date-time.js').default } DateTime */
 
 /**
@@ -14,32 +13,32 @@ const _formatOffset = (offset) => (0 < offset ? '-' : '+') + `${(Math.floor(Math
 
 /** @type {Map<string, function(DateTime): string>} */
 const	flags = new Map([
-	['D', (dateTime) => dateTime._baseDateTime.day],
-	['DD', (dateTime) => `${dateTime._baseDateTime.day}`.padStart(2, '0')],
-	['Do', (dateTime) => dateTime._locale.ordinal(dateTime._baseDateTime.day)],
-	['d', (dateTime) => dateTime._baseDateTime.dayOfTheWeek],
-	['dd', (dateTime) => dateTime._locale.dayNames[dateTime._baseDateTime.dayOfTheWeek]],
-	['ddd', (dateTime) => dateTime._locale.dayNames[dateTime._baseDateTime.dayOfTheWeek + 7]],
-	['M', (dateTime) => dateTime._baseDateTime.month],
-	['MM', (dateTime) => `${dateTime._baseDateTime.month}`.padStart(2, '0')],
-	['MMM', (dateTime) => dateTime._locale.monthNames[dateTime._baseDateTime.month - 1]],
-	['MMMM', (dateTime) => dateTime._locale.monthNames[dateTime._baseDateTime.month - 1 + 12]],
-	['YYYY', (dateTime) => `${dateTime._baseDateTime.year}`.padStart(4, 0)],
-	['h', (dateTime) => dateTime._baseDateTime.hour % 12 || 12],
-	['hh', (dateTime) => `${dateTime._baseDateTime.hour}`.padStart(2, '0')],
-	['H', (dateTime) => dateTime._baseDateTime.hour],
-	['HH', (dateTime) => `${dateTime._baseDateTime.hour}`.padStart(2, '0')],
-	['m', (dateTime) => dateTime._baseDateTime.minute],
-	['mm', (dateTime) => `${dateTime._baseDateTime.minute}`.padStart(2, '0')],
-	['s', (dateTime) => dateTime._baseDateTime.second],
-	['ss', (dateTime) => `${dateTime._baseDateTime.second}`.padStart(2, '0')],
-	['SSS', (dateTime) => `${dateTime._baseDateTime.millisecond}`.padStart(3, '0')],
-	['a', (dateTime) => dateTime._baseDateTime.hour < 12 ? 'am' : 'pm'],
-	['A', (dateTime) => dateTime._baseDateTime.hour < 12 ? 'AM' : 'PM'],
-	['z', (dateTime) => dateTime._baseDateTime.utc ? 'GMT' : `(${dateTime.getTimeZoneName(i18n.timeZoneFormats.SHORT)})`],
-	['zzz', (dateTime) => dateTime._baseDateTime.utc ? 'GMT' : `(${dateTime.getTimeZoneName(i18n.timeZoneFormats.LONG)})`],
-	['Z', (dateTime) => dateTime._baseDateTime.utc ? 'Z' : `GMT${_splice(_formatOffset(dateTime.getTimeZoneOffset()), 3, ':')}`],
-	['ZZ', (dateTime) => dateTime._baseDateTime.utc ? 'GMT' : `GMT${_formatOffset(dateTime.getTimeZoneOffset())} (${dateTime.getTimeZoneName(i18n.timeZoneFormats.LONG)})`]
+	['D', (dateTime) => dateTime.getDay()],
+	['DD', (dateTime) => `${dateTime.getDay()}`.padStart(2, '0')],
+	['Do', (dateTime) => dateTime.getLocale().ordinal(dateTime.getDay())],
+	['d', (dateTime) => dateTime.getDayOfTheWeek()],
+	['dd', (dateTime) => dateTime.getLocale().dayNames[dateTime.getDayOfTheWeek()]],
+	['ddd', (dateTime) => dateTime.getLocale().dayNames[dateTime.getDayOfTheWeek() + 7]],
+	['M', (dateTime) => dateTime.getMonth()],
+	['MM', (dateTime) => `${dateTime.getMonth() }`.padStart(2, '0')],
+	['MMM', (dateTime) => dateTime.getLocale().monthNames[dateTime.getMonth() - 1]],
+	['MMMM', (dateTime) => dateTime.getLocale().monthNames[dateTime.getMonth() - 1 + 12]],
+	['YYYY', (dateTime) => `${dateTime.getYear()}`.padStart(4, 0)],
+	['h', (dateTime) => dateTime.getHour() % 12 || 12],
+	['hh', (dateTime) => `${dateTime.getHour()}`.padStart(2, '0')],
+	['H', (dateTime) => dateTime.getHour()],
+	['HH', (dateTime) => `${dateTime.getHour()}`.padStart(2, '0')],
+	['m', (dateTime) => dateTime.getMinute()],
+	['mm', (dateTime) => `${dateTime.getMinute()}`.padStart(2, '0')],
+	['s', (dateTime) => dateTime.getSecond()],
+	['ss', (dateTime) => `${dateTime.getSecond()}`.padStart(2, '0')],
+	['SSS', (dateTime) => `${dateTime.getMillisecond()}`.padStart(3, '0')],
+	['a', (dateTime) => dateTime.getHour() < 12 ? 'am' : 'pm'],
+	['A', (dateTime) => dateTime.getHour() < 12 ? 'AM' : 'PM'],
+	['z', (dateTime) => dateTime.isUtc() ? 'GMT' : `(${dateTime.getTimeZoneName(i18n.timeZoneFormats.SHORT)})`],
+	['zzz', (dateTime) => dateTime.isUtc() ? 'GMT' : `(${dateTime.getTimeZoneName(i18n.timeZoneFormats.LONG)})`],
+	['Z', (dateTime) => dateTime.isUtc() ? 'Z' : `GMT${_splice(_formatOffset(dateTime.getTimeZoneOffset()), 3, ':')}`],
+	['ZZ', (dateTime) => dateTime.isUtc() ? 'GMT' : `GMT${_formatOffset(dateTime.getTimeZoneOffset())} (${dateTime.getTimeZoneName(i18n.timeZoneFormats.LONG)})`]
 ]);
 
 /**
@@ -82,7 +81,7 @@ export default class DateFormatter {
 	 * @param {boolean} [utc]
 	 * @returns {string}
 	 */
-	static format(dateTime, pattern, utc = dateTime._baseDateTime.utc) {
-		return dateTime._baseDateTime.isValid ? pattern.replace(regExps.formattingTokens, (flag, captured) => captured ?? flags.get(flag)(utc ? dateTime.utc() : dateTime.local())) : dateTime._baseDateTime.date.toString();
+	static format(dateTime, pattern, utc = dateTime.isUtc()) {
+		return dateTime.isValid() ? pattern.replace(regExps.formattingTokens, (flag, captured) => captured ?? flags.get(flag)(utc ? dateTime.utc() : dateTime.local())) : dateTime.toDate().toString();
 	}
 }

@@ -1,30 +1,19 @@
-// @ts-nocheck
+import { _type } from '@d1g1tal/chrysalis';
 import BaseDateTime from './base-date-time.js';
-import Locale from './locale.js';
+import DateFormatter from './date-formatter.js';
 import Duration from './duration.js';
+import Locale from './locale.js';
 import Period from './period.js';
 import TimeZone from './time-zone.js';
-import DateFormatter from './date-formatter.js';
-import { _type } from '@d1g1tal/chrysalis';
-import { i18n, DateTimeUnit, DateField, PeriodUnit, DateOperation } from './constants.js';
-import { _dateFromArray, _convertLegacyDate, _set, _startOf, _processDatePeriodOperations } from './utils.js';
-/** @typedef { import('./pattern-format.js').default } PatternFormat */
+import { DateField, DateOperation, DateTimeUnit, i18n, PeriodUnit } from './constants.js';
+import { _convertLegacyDate, _dateFromArray, _processDatePeriodOperations, _set, _startOf } from './utils.js';
 
 /**
- * Perform an arithmetic operation on a {@link DateTime} instance using the provided value and operation type
- *
- * @param {DateTime} dateTime
- * @param {(Duration|Period)} value
- * @param {string} operationType
- * @returns {DateTime}
+ * @typedef {Object} DateTimeConfig
+ * @property {boolean} [utc = false] Create the DateTime with the UTC offset.
+ * @property {string} [locale = i18n.locale] The specific locale to use.
+ * @property {string} [pattern] The pattern to use to parse the supplied date string.
  */
-const _performOperation = (dateTime, value, operationType) => {
-	switch (_type(value)) {
-		case Duration: return new DateTime(_processDatePeriodOperations(new Date(dateTime.valueOf()), value.periods(), operationType, dateTime._baseDateTime.utc), { locale: dateTime._locale.name });
-		case Period: return value[operationType](dateTime);
-		default: return dateTime;
-	}
-};
 
 /**
  * Native JavaScript Date wrapper. Main features include
@@ -35,58 +24,64 @@ const _performOperation = (dateTime, value, operationType) => {
  * Ability to create and convert dates either in UTC or local time zones.
  * {@link DateTime} instances are immutable.
  *
+ * @example
+ * const dateTime = new DateTime('28/10/2018 23:43:12', { utc: true, pattern: 'DD/MM/YYYY HH:mm:ss' })
+ * console.log(dateTime.toString()) // 2018-10-28T23:43:12.000Z
  * @module DateTime
  * @author Jason DiMeo <jason.dimeo@gmail.com>
  */
 export default class DateTime {
+	/** @type {BaseDateTime} */
+	#baseDateTime;
+	/** @type {Locale} */
+	#locale;
+	/** @type {TimeZone} */
+	#timeZone;
+
 	/**
 	 * Create new {@link DateTime} instance from various parameter data types
 	 *
-	 * @param {(string|number|Date|Array<number>|BaseDateTime|undefined)} [date=Date.now()]
-	 * @param {Object} [config={}]
-	 * @param {boolean} [config.utc=false]
-	 * @param {string} [config.locale=i18n.locale]
-	 * @param {string} [config.pattern]
+	 * @param {string|number|Date|Array<number>|BaseDateTime|DateTimeConfig|undefined} [date = Date.now()]
+	 * @param {DateTimeConfig} [dateTimeConfig = {}]
 	 */
 	constructor(date = Date.now(), { utc = false, locale = i18n.locale, pattern } = {}) {
 		switch (_type(date)) {
 			case String: {
-				this._locale = Locale.get(locale);
-				/** @type {BaseDateTime} */
-				this._baseDateTime = this._locale.dateParser.parse(date, { utc, pattern });
+				this.#locale = Locale.get(locale);
+				this.#baseDateTime = this.#locale.dateParser.parse(date, { utc, pattern });
 				break;
 			}
-			case Object: {
-				// Drop through to the next case. This is intentional.
-				({ utc = utc, locale = locale } = date);
-				date = Date.now();
-			}
 			case Date: case Number: {
-				this._baseDateTime = new BaseDateTime(new Date(date.valueOf()), utc);
+				this.#baseDateTime = new BaseDateTime(new Date(date.valueOf()), utc);
 				break;
 			}
 			case Array: {
-				this._baseDateTime = new BaseDateTime(_dateFromArray(date, utc), utc);
+				this.#baseDateTime = new BaseDateTime(_dateFromArray(date, utc), utc);
+				break;
+			}
+			case Object: {
+				// Swap date parameter with DateTimeConfig. Use the defaults from the 'config' parameter if not present in the 'date' parameter passed in.
+				({ utc = utc, locale = locale } = date);
+				this.#baseDateTime = new BaseDateTime(new Date(), utc);
 				break;
 			}
 			case BaseDateTime: {
-				this._baseDateTime = date;
+				this.#baseDateTime = date;
 				break;
 			}
-			default: this._baseDateTime = new BaseDateTime(new Date(''));
+			default: this.#baseDateTime = new BaseDateTime(new Date(''));
 		}
 
-		if (this._baseDateTime.isValid) {
-			this._locale ??= Locale.get(locale);
-			this._timeZone = new TimeZone(this._baseDateTime, this._locale.timeZoneFormatters);
+		if (this.#baseDateTime.isValid) {
+			this.#locale ??= Locale.get(locale);
+			this.#timeZone = new TimeZone(this.#baseDateTime, this.#locale.timeZoneFormatters);
 		}
-		Object.freeze(this);
 	}
 
 	/**
 	 * Static access to date/time patterns used for formatting.
 	 *
-	 * @returns {PatternFormat}
+	 * @returns { import('./pattern-format.js').default }
 	 */
 	static get Pattern() {
 		return DateFormatter.Pattern;
@@ -166,7 +161,7 @@ export default class DateTime {
 	 * @returns {DateTime}
 	 */
 	startOf(unit) {
-		return new DateTime(_startOf(this._baseDateTime, unit), { locale: this._locale.name });
+		return new DateTime(_startOf(this.#baseDateTime, unit), { locale: this.#locale.name });
 	}
 
 	/**
@@ -175,9 +170,9 @@ export default class DateTime {
 	 * @returns {DateTime}
 	 */
 	local() {
-		if (!this._baseDateTime.utc) return this;
+		if (!this.#baseDateTime.utc) return this;
 
-		return this._baseDateTime.isLegacyDate ? new DateTime(_convertLegacyDate(this._baseDateTime, this._timeZone.offset)) : new DateTime(this.valueOf());
+		return this.#baseDateTime.isLegacyDate ? new DateTime(_convertLegacyDate(this.#baseDateTime, this.#timeZone.offset)) : new DateTime(this.valueOf());
 	}
 
 	/**
@@ -186,9 +181,9 @@ export default class DateTime {
 	 * @returns {DateTime}
 	 */
 	utc() {
-		if (this._baseDateTime.utc) return this;
+		if (this.#baseDateTime.utc) return this;
 
-		return this._baseDateTime.isLegacyDate ? new DateTime(_convertLegacyDate(this._baseDateTime, this._timeZone.offset, true)) : new DateTime(this.valueOf(), { utc: true });
+		return this.#baseDateTime.isLegacyDate ? new DateTime(_convertLegacyDate(this.#baseDateTime, this.#timeZone.offset, true)) : new DateTime(this.valueOf(), { utc: true });
 	}
 
 	/**
@@ -199,7 +194,7 @@ export default class DateTime {
 	 * @returns {DateTime}
 	 */
 	add(value, period) {
-		return _performOperation(this, period ? new Period(value, period) : value, DateOperation.ADD);
+		return DateTime.#performOperation(this, period ? new Period(value, period) : value, DateOperation.ADD);
 	}
 
 	/**
@@ -210,7 +205,7 @@ export default class DateTime {
 	 * @returns {DateTime}
 	 */
 	subtract(value, period) {
-		return _performOperation(this, period ? new Period(value, period) : value, DateOperation.SUBTRACT);
+		return DateTime.#performOperation(this, period ? new Period(value, period) : value, DateOperation.SUBTRACT);
 	}
 
 	/**
@@ -252,8 +247,8 @@ export default class DateTime {
 	 */
 	set(unit, value) {
 		const date = new Date(this.valueOf());
-		_set(date, DateField[unit], unit == DateTime.Unit.MONTH ? value - 1 : value, this._baseDateTime.utc);
-		return new DateTime(new BaseDateTime(date, this._baseDateTime.utc), { locale: this._locale.name });
+		_set(date, DateField[unit], unit == DateTime.Unit.MONTH ? value - 1 : value, this.#baseDateTime.utc);
+		return new DateTime(new BaseDateTime(date, this.#baseDateTime.utc), { locale: this.#locale.name });
 	}
 
 	/**
@@ -337,7 +332,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	get(unit) {
-		return this._baseDateTime[unit];
+		return this.#baseDateTime[unit];
 	}
 
 	/**
@@ -345,7 +340,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getYear() {
-		return this._baseDateTime.year;
+		return this.#baseDateTime.year;
 	}
 
 	/**
@@ -353,7 +348,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getMonth() {
-		return this._baseDateTime.month;
+		return this.#baseDateTime.month;
 	}
 
 	/**
@@ -361,7 +356,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getDay() {
-		return this._baseDateTime.day;
+		return this.#baseDateTime.day;
 	}
 
 	/**
@@ -369,7 +364,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getHour() {
-		return this._baseDateTime.hour;
+		return this.#baseDateTime.hour;
 	}
 
 	/**
@@ -377,7 +372,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getMinute() {
-		return this._baseDateTime.minute;
+		return this.#baseDateTime.minute;
 	}
 
 	/**
@@ -385,7 +380,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getSecond() {
-		return this._baseDateTime.second;
+		return this.#baseDateTime.second;
 	}
 
 	/**
@@ -393,7 +388,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getMillisecond() {
-		return this._baseDateTime.millisecond;
+		return this.#baseDateTime.millisecond;
 	}
 
 	/**
@@ -402,7 +397,7 @@ export default class DateTime {
 	 * @returns {Locale}
 	 */
 	getLocale() {
-		return this._locale;
+		return this.#locale;
 	}
 
 	/**
@@ -411,7 +406,7 @@ export default class DateTime {
 	 * @returns {string}
 	 */
 	getTimeZone() {
-		return this._timeZone.location;
+		return this.#timeZone.location;
 	}
 
 	/**
@@ -420,7 +415,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getTimeZoneOffset() {
-		return this._timeZone.offset;
+		return this.#timeZone.offset;
 	}
 
 	/**
@@ -429,7 +424,7 @@ export default class DateTime {
 	 * @returns {string}
 	 */
 	getTimeZoneName(timeZoneFormat) {
-		return this._timeZone.getName(timeZoneFormat);
+		return this.#timeZone.getName(timeZoneFormat);
 	}
 
 	/**
@@ -437,7 +432,11 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getDaysInMonth() {
-		return this._baseDateTime.daysInMonth;
+		return this.#baseDateTime.daysInMonth;
+	}
+
+	getDayOfTheWeek() {
+		return this.#baseDateTime.dayOfTheWeek;
 	}
 
 	/**
@@ -445,7 +444,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	getDayOfYear() {
-		return this._baseDateTime.dayOfTheYear;
+		return this.#baseDateTime.dayOfTheYear;
 	}
 
 	/**
@@ -454,7 +453,7 @@ export default class DateTime {
 	 * @returns {boolean}
 	 */
 	isValid() {
-		return this._baseDateTime.isValid;
+		return this.#baseDateTime.isValid;
 	}
 
 	/**
@@ -462,7 +461,7 @@ export default class DateTime {
 	 * @returns {boolean}
 	 */
 	isUtc() {
-		return this._baseDateTime.utc;
+		return this.#baseDateTime.utc;
 	}
 
 	/**
@@ -470,7 +469,7 @@ export default class DateTime {
 	 * @returns {boolean}
 	 */
 	isDaylightSavingsTime() {
-		return this._baseDateTime.utc ? false : this._baseDateTime.isDaylightSavingsTime;
+		return this.#baseDateTime.utc ? false : this.#baseDateTime.isDaylightSavingsTime;
 	}
 
 	/**
@@ -478,7 +477,7 @@ export default class DateTime {
 	 * @returns {boolean}
 	 */
 	isLeapYear() {
-		return !(this._baseDateTime.year & 3 || this._baseDateTime.year & 15 && !(this._baseDateTime.year % 25));
+		return !(this.#baseDateTime.year & 3 || this.#baseDateTime.year & 15 && !(this.#baseDateTime.year % 25));
 	}
 
 	/**
@@ -506,7 +505,7 @@ export default class DateTime {
 	 * @returns {DateTime}
 	 */
 	clone() {
-		return new DateTime(this.valueOf(), { utc: this._baseDateTime.utc, locale: this._locale.name });
+		return new DateTime(this.valueOf(), { utc: this.#baseDateTime.utc, locale: this.#locale.name });
 	}
 
 	/**
@@ -515,7 +514,7 @@ export default class DateTime {
 	 * @returns {number}
 	 */
 	valueOf() {
-		return this._baseDateTime.date.valueOf();
+		return this.#baseDateTime.date.valueOf();
 	}
 
 	/**
@@ -525,7 +524,7 @@ export default class DateTime {
 	 * @param {boolean} [utc]
 	 * @returns {string}
 	 */
-	format(pattern = DateTime.Pattern.RFC_1123, utc = this._baseDateTime.utc) {
+	format(pattern = DateTime.Pattern.RFC_1123, utc = this.#baseDateTime.utc) {
 		return DateFormatter.format(this, pattern, utc);
 	}
 
@@ -535,7 +534,7 @@ export default class DateTime {
 	 * @returns {string}
 	 */
 	toString() {
-		return DateFormatter.format(this, this._baseDateTime.utc ? DateTime.Pattern.ISO_DATE_TIME : DateTime.Pattern.DEFAULT, this._baseDateTime.utc);
+		return DateFormatter.format(this, this.#baseDateTime.utc ? DateTime.Pattern.ISO_DATE_TIME : DateTime.Pattern.DEFAULT, this.#baseDateTime.utc);
 	}
 
 	/**
@@ -544,7 +543,7 @@ export default class DateTime {
 	 * @returns {string}
 	 */
 	toLocaleString(short = false) {
-		return DateFormatter.format(this, short ? this._locale.patterns.ABBR_DATE_TIME : this._locale.patterns.DATE_TIME, this._baseDateTime.utc);
+		return DateFormatter.format(this, short ? this.#locale.patterns.ABBR_DATE_TIME : this.#locale.patterns.DATE_TIME, this.#baseDateTime.utc);
 	}
 
 	/**
@@ -553,7 +552,7 @@ export default class DateTime {
 	 * @returns {string}
 	 */
 	toLocaleDateString(short = false) {
-		return DateFormatter.format(this, short ? this._locale.patterns.ABBR_DATE : this._locale.patterns.DATE, this._baseDateTime.utc);
+		return DateFormatter.format(this, short ? this.#locale.patterns.ABBR_DATE : this.#locale.patterns.DATE, this.#baseDateTime.utc);
 	}
 
 	/**
@@ -562,7 +561,7 @@ export default class DateTime {
 	 * @returns {string}
 	 */
 	toLocaleTimeString(short = false) {
-		return DateFormatter.format(this, short ? this._locale.patterns.TIME : this._locale.patterns.TIME_WITH_SECONDS, this._baseDateTime.utc);
+		return DateFormatter.format(this, short ? this.#locale.patterns.TIME : this.#locale.patterns.TIME_WITH_SECONDS, this.#baseDateTime.utc);
 	}
 
 	/**
@@ -579,5 +578,21 @@ export default class DateTime {
 	 */
 	get [Symbol.toStringTag]() {
 		return 'DateTime';
+	}
+
+	/**
+	 * Perform an arithmetic operation on a {@link DateTime} instance using the provided value and operation type
+	 *
+	 * @param {DateTime} dateTime
+	 * @param {(Duration|Period)} value
+	 * @param {string} operationType
+	 * @returns {DateTime}
+	 */
+	static #performOperation(dateTime, value, operationType) {
+		switch (_type(value)) {
+			case Duration: return new DateTime(_processDatePeriodOperations(new Date(dateTime.valueOf()), value.periods(), operationType, dateTime.#baseDateTime.utc), { locale: dateTime.#locale.name });
+			case Period: return value[operationType](dateTime);
+			default: return dateTime;
+		}
 	}
 }
