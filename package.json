@@ -1,22 +1,38 @@
 {
 	"name": "@d1g1tal/date-time-js",
-	"version": "2.0.1",
+	"version": "2.0.3",
 	"author": {
 		"name": "Jason DiMeo"
 	},
 	"license": "MIT",
 	"description": "JavaScript DateTime Library",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/D1g1talEntr0py/date-time-js.git"
+	},
+  "bugs": {
+    "url": "https://github.com/D1g1talEntr0py/date-time-js/issues"
+  },
+	"publishConfig": {
+		"access": "public"
+	},
+	"type": "module",
+	"types": "src/index/esm.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/date-time.js",
+      "default": "./dist/umd/date-time.js"
+    }
+  },
 	"scripts": {
 		"build": "npm run update-browserslist && webpack --mode=production",
 		"build:esm": "npm run build --config-name=esm",
 		"build:umd": "npm run build --config-name=umd",
 		"lint": "eslint --ext .js --fix --ignore-path .gitignore .",
 		"test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
+		"d.ts": "tsc --allowJs -declaration --emitDeclarationOnly  --skipLibCheck --lib esnext src/index/esm.js",
 		"update-browserslist": "npx browserslist@latest --update-db"
 	},
-	"type": "module",
-	"main": "/src/js/index/umd.js",
-	"module": "/src/js/index/esm.js",
 	"files": [
 		"/src",
 		"/dist"
@@ -32,6 +48,7 @@
 		"@babel/core": "^7.20.2",
 		"@babel/eslint-parser": "^7.19.1",
 		"@babel/preset-env": "^7.20.2",
+		"@skypack/package-check": "^0.2.2",
 		"babel-loader": "^9.1.0",
 		"browserslist": "^4.21.4",
 		"copy-webpack-plugin": "^11.0.0",
@@ -57,8 +74,8 @@
 		"transform": {},
 		"coverageDirectory": "./tests/coverage/",
 		"coveragePathIgnorePatterns": [
-			"<rootDir>/src/js/index/esm.js",
-			"<rootDir>/src/js/index/umd.js",
+			"<rootDir>/src/index/esm.js",
+			"<rootDir>/src/index/umd.js",
 			"/node_modules/"
 		],
 		"collectCoverage": true,

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { DateTime } from './module.js?locale=en-US&global=true';
-import { _dateFromArray } from '../src/js/utils.js';
+import { _dateFromArray } from '../src/utils.js';
 import { describe, expect, test } from '@jest/globals';
 import { _checkDateProperties } from './test.utilities.js';
 

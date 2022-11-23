@@ -1,7 +1,7 @@
 import { describe, expect, it, test } from '@jest/globals';
-import BaseDateTime from '../src/js/base-date-time.js';
-import { DateField, DateTimeUnit } from '../src/js/constants.js';
-import { _get, _set, _splice, _startOf } from '../src/js/utils.js';
+import BaseDateTime from '../src/base-date-time.js';
+import { DateField, DateTimeUnit } from '../src/constants.js';
+import { _get, _set, _splice, _startOf } from '../src/utils.js';
 import { _checkDateProperties, _createCurrentUtcDate, _createDatesFromArray } from './test.utilities.js';
 
 describe('_set:Date mutated from internal function should match date mutated from native method', () => {

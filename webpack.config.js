@@ -25,9 +25,10 @@ const _mergeConfiguration = (configuration, esVersion, moduleType) => {
 		name: moduleType,
 		target: ['web', `es${esVersion}`],
 		entry: {
-			'date-time': `./src/js/index/${moduleType}.js`,
-			'date-time.min': `./src/js/index/${moduleType}.js`,
+			'date-time': `./src/index/${moduleType}.js`,
+			'date-time.min': `./src/index/${moduleType}.js`,
 		},
+		devtool: 'source-map',
 		output: {
 			path: path.resolve(process.cwd(), `dist/${moduleType}`),
 			filename: '[name].js',
@@ -70,7 +71,7 @@ export default ({ esVersion = 2022, transpile = 'true' }) => {
 
 		// Plugins
 		const minimizerOptions = { include: /\.min\.js$/, terserOptions: { ecma: esVersion } };
-		const copyPluginPattern = { from: './src/js/locales', to: 'locales/[name][ext]', info: { minimized: true } };
+		const copyPluginPattern = { from: './src/locales', to: 'locales/[name][ext]', info: { minimized: true } };
 
 		if (moduleType == 'esm') {
 			minimizerOptions.terserOptions.module = true;

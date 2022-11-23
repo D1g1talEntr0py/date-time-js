@@ -1,6 +1,6 @@
 import { expect } from '@jest/globals';
 import { DateTime } from './module.js?locale=en-US&global=true';
-import { _dateFromArray, _get } from '../src/js/utils.js';
+import { _dateFromArray, _get } from '../src/utils.js';
 
 /**
  * Checks that the properties of a {@link Date} object match the properties of a {@link DateTime} object
