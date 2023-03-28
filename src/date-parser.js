@@ -1,7 +1,7 @@
-// @ts-nocheck
 import BaseDateTime from './base-date-time.js';
-import { _dateFromArray, _removeArrayEntryByIndex } from './utils.js';
-import { DateParsingToken, dateParserTokenMappings, regExps } from './constants.js';
+import { _dateFromArray } from './utils.js';
+import { _arrayRemove } from '@d1g1tal/chrysalis';
+import { DateParsingToken, dateParserTokenMappings, regExps, invalidDate } from './constants.js';
 
 export default class DateParser {
 	#dateParsingPatterns;
@@ -54,7 +54,7 @@ export default class DateParser {
 				utc = true;
 				if (zoneOffset !== '0') {
 					// Add the offset to the milliseconds
-					millisecond += -(zoneOffset == 'Z' ? 0 : _parseZoneOffset(zoneOffset)) * 6e4;
+					millisecond += 0 - (zoneOffset == 'Z' ? 0 : _parseZoneOffset(zoneOffset)) * 6e4;
 				}
 			} else if (meridiem !== undefined) {
 				hour = +hour;
@@ -70,7 +70,7 @@ export default class DateParser {
 			parsedDate = _dateFromArray([year, month, day, hour, minute, second, millisecond], utc);
 		}
 
-		return new BaseDateTime(parsedDate ?? new Date(''), utc);
+		return new BaseDateTime(parsedDate ?? invalidDate, utc);
 	}
 }
 
@@ -88,14 +88,14 @@ const _fromLocalePatterns = (datePattern, timePattern) => {
 	if (!(timeTokens[secondsDelimiterIndex] in dateParserTokenMappings)) {
 		const spaceTokenIndex = timeTokens.lastIndexOf(DateParsingToken.MERIDIEM) - 1;
 		if (timeTokens[spaceTokenIndex] == ' ') {
-			_removeArrayEntryByIndex(timeTokens, spaceTokenIndex);
+			_arrayRemove(timeTokens, spaceTokenIndex);
 		}
 
 		const timeDelimiter = timeTokens[secondsDelimiterIndex];
 		tokenTransformers[DateParsingToken.SECOND] = (regExpSource) => `(?:${timeDelimiter}${regExpSource})?`;
 		tokenTransformers[DateParsingToken.MERIDIEM] = (regExpSource) => `(?:\\s${regExpSource})?`;
 
-		_removeArrayEntryByIndex(timeTokens, secondsDelimiterIndex);
+		_arrayRemove(timeTokens, secondsDelimiterIndex);
 	}
 
 	return new RegExp(`^${_appendRegExp(_createPatternTokens(datePattern))}(?:\\s${_appendRegExp(timeTokens, tokenTransformers)})?$`);

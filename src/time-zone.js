@@ -12,7 +12,7 @@ export default class TimeZone {
 	/**
 	 *
 	 * @param {BaseDateTime} baseDateTime
-	 * @param {Object.<string, Intl.DateTimeFormat>} formatters
+	 * @param {Object<string, Intl.DateTimeFormat>} formatters
 	 */
 	constructor(baseDateTime, formatters) {
 		this.#date = baseDateTime.isLegacyDate ? _dateFromArray([1970, baseDateTime.month, baseDateTime.day, baseDateTime.hour, baseDateTime.minute, baseDateTime.second, baseDateTime.millisecond], baseDateTime.utc) : baseDateTime.date;

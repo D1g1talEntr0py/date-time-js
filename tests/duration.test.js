@@ -1,4 +1,4 @@
-import { DateTime, Duration} from './module.js?locale=en-US&global=true';
+import { DateTime, Duration} from './test-module.js?locale=en-US&global=true';
 import { it, describe, expect, test } from '@jest/globals';
 
 const defaultDurations = { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 };

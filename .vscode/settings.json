@@ -41,5 +41,6 @@
 	],
 	"eslint.format.enable": false,
 	"eslint.lintTask.enable": true,
-	"eslint.onIgnoredFiles": "warn"
+	"eslint.onIgnoredFiles": "warn",
+	"docwriter.style": "JSDoc"
 }

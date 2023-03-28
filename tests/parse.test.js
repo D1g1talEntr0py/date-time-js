@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { DateTime } from './module.js?locale=en-US&global=true';
+import { DateTime } from './test-module.js?locale=en-US&global=true';
 import { _dateFromArray } from '../src/utils.js';
 import { describe, expect, test } from '@jest/globals';
 import { _checkDateProperties } from './test.utilities.js';
@@ -28,7 +28,7 @@ describe('Parse Local ISO Dates and Times', () => {
 		dateString = '2018-04-24';
 		expect(new DateTime(dateString).valueOf()).toBe(new Date(2018, 3, 24).valueOf());
 		dateString = '2018-04-24 11:12';
-		expect(new DateTime(dateString).format()).toBe(new DateTime(new Date(2018, 3, 24, 11, 12)).format()); // not recommend
+		expect(new DateTime(dateString).format()).toBe(new DateTime(new Date(2018, 3, 24, 11, 12).valueOf()).format()); // not recommend
 		dateString = '2018-05-02 11:12:13';
 		expect(new DateTime(dateString).valueOf()).toBe(new Date(2018, 4, 2, 11, 12, 13).valueOf());
 		dateString = '2018-05-02 11:12:13.998';
@@ -36,13 +36,13 @@ describe('Parse Local ISO Dates and Times', () => {
 		dateString = '2018-4-1';
 		expect(DateTime.parse(dateString, 'YYYY-M-D').valueOf()).toBe(new Date(2018, 3, 1).valueOf()); // not recommend
 		dateString = '2018-4-1 11:12';
-		expect(DateTime.parse(dateString, 'YYYY-M-D hh:mm').format()).toBe(new DateTime(new Date(2018, 3, 1, 11, 12)).format()); // not recommend
+		expect(DateTime.parse(dateString, 'YYYY-M-D hh:mm').format()).toBe(new DateTime(new Date(2018, 3, 1, 11, 12).valueOf()).format()); // not recommend
 		dateString = '2018-4-1 1:1:1:223';
 		expect(DateTime.parse(dateString, 'YYYY-M-D h:m:s:SSS').valueOf()).toBe(new Date(2018, 3, 1, 1, 1, 1, 223).valueOf()); // not recommend
 		dateString = '2018-01';
 		expect(DateTime.parse(dateString, 'YYYY-MM').valueOf()).toBe(new Date(2018, 0).valueOf()); // not recommend
 		dateString = '2018';
-		expect(DateTime.parse(dateString, 'YYYY').format()).toBe(new DateTime(new Date(2018, 0)).format()); // not recommend
+		expect(DateTime.parse(dateString, 'YYYY').format()).toBe(new DateTime(new Date(2018, 0).valueOf()).format()); // not recommend
 		dateString = '2018-05-02T11:12:13Z';
 		expect(new DateTime(dateString).valueOf()).toBe(new Date(Date.UTC(2018, 4, 2, 11, 12, 13)).valueOf()); // not recommend
 	});

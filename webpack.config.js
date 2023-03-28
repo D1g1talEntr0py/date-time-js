@@ -1,6 +1,6 @@
 import path from 'path';
-import TerserPlugin from 'terser-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
+import TerserPlugin from 'terser-webpack-plugin';
 import { _objectMerge } from '@d1g1tal/chrysalis';
 
 const configurations = new Map([
@@ -14,11 +14,12 @@ const configurations = new Map([
 ]);
 
 /**
+ * Merge the configurations for ESM and UMD.
  *
- * @param {Object} configuration
- * @param {number} esVersion
- * @param {string} moduleType
- * @returns {Object}
+ * @param {Object} configuration The configuration options
+ * @param {number} esVersion Target script version
+ * @param {string} moduleType The module type
+ * @returns {Object} The resulting webpack configuration
  */
 const _mergeConfiguration = (configuration, esVersion, moduleType) => {
 	const commonConfig = {
@@ -57,10 +58,12 @@ const _mergeConfiguration = (configuration, esVersion, moduleType) => {
 };
 
 /**
- * @param {Object} env
- * @param {number} env.esVersion
- * @param {string} env.transpile
- * @returns {Array<Object>} The resulting configuration for webpack.
+ * The webpack config function.
+ *
+ * @param {Object} env Environment variables
+ * @param {number} [env.esVersion=2022] The ES version
+ * @param {string} [env.transpile='true'] Indicator on whether or not to transpile the code
+ * @returns {Array<Object>} An array of webpack configurations.
  */
 export default ({ esVersion = 2022, transpile = 'true' }) => {
 	const config = [];

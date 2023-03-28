@@ -1,5 +1,5 @@
 import { describe, expect, it, test } from '@jest/globals';
-import { DateTime } from './module.js?locale=en-US&global=true';
+import { DateTime } from './test-module.js?locale=en-US&global=true';
 import { _createCurrentUtcDate, _createDatesFromArray } from './test.utilities.js';
 
 describe('Start of', () => {
@@ -178,7 +178,7 @@ describe('Subtract hours', () => {
 	it('Should have the same hours as native Date', () => expect(subtractHoursDateTime.getHour()).toEqual(subtractHoursDate.getHours()));
 	it('Should have the same value as native Date', () => expect(subtractHoursDateTime.valueOf()).toEqual(subtractHoursDate.valueOf()));
 	it('Should be equal to new native Date object', () => expect(subtractHoursDateTime.toDate()).toEqual(subtractHoursDate));
-	it('Should be equal to new DateTime object', () => expect(subtractHoursDateTime).toEqual(new DateTime(subtractHoursDate)));
+	it('Should be equal to new DateTime object', () => expect(subtractHoursDateTime).toEqual(new DateTime()));
 });
 
 describe('Subtract minutes', () => {
@@ -215,12 +215,72 @@ describe('Subtract milliseconds', () => {
 });
 
 describe('valueOf', () => {
-	const date = new Date();
-	const dateTime = new DateTime();
 	const { date: pastDate, dateTime: pastDateTime } = _createDatesFromArray([1986, 10, 14, 15, 33, 18, 451]);
 	const { date: ancientDate, dateTime: ancientDateTime } = _createDatesFromArray([1, 1, 1, 14, 22, 48, 223]);
 
 	test('Current DateTime and Date objects have the same value', () => expect(dateTime.valueOf()).toEqual(date.valueOf()));
 	test('Current DateTime and Date objects have the same value', () => expect(pastDateTime.valueOf()).toEqual(pastDate.valueOf()));
 	test('Ancient DateTime and Date objects have the same value', () => expect(ancientDateTime.valueOf()).toEqual(ancientDate.valueOf()));
+});
+
+describe('toString', () => {
+	const { date: pastDate, dateTime: pastDateTime } = _createDatesFromArray([1986, 10, 14, 15, 33, 18, 451]);
+	const { date: ancientDate, dateTime: ancientDateTime } = _createDatesFromArray([1, 1, 1, 14, 22, 48, 223]);
+
+	test('Current DateTime and Date objects have the same value', () => expect(dateTime.toString()).toEqual(date.toString()));
+	test('Current DateTime and Date objects have the same value', () => expect(pastDateTime.toString()).toEqual(pastDate.toString()));
+	test('Ancient DateTime and Date objects have the same value', () => expect(ancientDateTime.toString()).not.toEqual(ancientDate.toString()));
+});
+
+describe('min', () => {
+	const { date: pastDate, dateTime: pastDateTime } = _createDatesFromArray([1986, 10, 14, 15, 33, 18, 451]);
+	const { date: ancientDate, dateTime: ancientDateTime } = _createDatesFromArray([1, 1, 1, 14, 22, 48, 223]);
+
+	test('Should return the earliest date', () => expect(DateTime.min(pastDateTime, ancientDateTime).equals(ancientDateTime)).toEqual(true));
+	test('Should return the earliest date', () => expect(DateTime.min(ancientDateTime, pastDateTime).equals(ancientDateTime)).toEqual(true));
+	test('Should NOT return the earliest date', () => expect(DateTime.min(pastDateTime, ancientDateTime).equals(pastDate)).toEqual(false));
+	test('Should return the earliest date', () => expect(DateTime.min(pastDateTime, ancientDateTime).valueOf()).toEqual(ancientDate.valueOf()));
+	test('Should NOT return the earliest date', () => expect(DateTime.min(pastDateTime, ancientDateTime).valueOf()).not.toEqual(pastDate.valueOf()));
+	test('Should return the earliest date', () => expect(DateTime.min(pastDateTime, ancientDateTime).toString()).not.toEqual(ancientDate.toString()));
+	test('Should return the earliest date', () => expect(DateTime.min(pastDateTime, ancientDateTime).toDate()).toEqual(ancientDate));
+	test('Should NOT return the earliest date', () => expect(DateTime.min(pastDateTime, ancientDateTime).toDate()).not.toEqual(pastDate));
+});
+
+describe('max', () => {
+	const { date: pastDate, dateTime: pastDateTime } = _createDatesFromArray([1986, 10, 14, 15, 33, 18, 451]);
+	const { date: ancientDate, dateTime: ancientDateTime } = _createDatesFromArray([1, 1, 1, 14, 22, 48, 223]);
+
+	test('Should return the latest date', () => expect(DateTime.max(pastDateTime, ancientDateTime).equals(pastDateTime)).toEqual(true));
+	test('Should return the latest date', () => expect(DateTime.max(ancientDateTime, pastDateTime).equals(pastDateTime)).toEqual(true));
+	test('Should NOT return the latest date', () => expect(DateTime.max(pastDateTime, ancientDateTime).equals(ancientDate)).toEqual(false));
+	test('Should return the latest date', () => expect(DateTime.max(pastDateTime, ancientDateTime).valueOf()).toEqual(pastDate.valueOf()));
+	test('Should NOT return the latest date', () => expect(DateTime.max(pastDateTime, ancientDateTime).valueOf()).not.toEqual(ancientDate.valueOf()));
+	test('Should return the latest date', () => expect(DateTime.max(pastDateTime, ancientDateTime).toString()).toEqual(pastDate.toString()));
+	test('Should return the latest date', () => expect(DateTime.max(pastDateTime, ancientDateTime).toDate()).toEqual(pastDate));
+	test('Should NOT return the latest date', () => expect(DateTime.max(pastDateTime, ancientDateTime).toDate()).not.toEqual(ancientDate));
+});
+
+describe('startOf', () => {
+	const { date: pastDate, dateTime: pastDateTime } = _createDatesFromArray([1986, 10, 14, 15, 33, 18, 451]);
+	const { date: ancientDate, dateTime: ancientDateTime } = _createDatesFromArray([1, 1, 1, 14, 22, 48, 223]);
+
+	test('Should return the start of the day', () => expect(pastDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([pastDate.getFullYear(), pastDate.getMonth() + 1, pastDate.getDate()]))).toEqual(true));
+	test('Should return the start of the day', () => expect(pastDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([pastDate.getFullYear(), pastDate.getMonth() + 1, pastDate.getDate(), 0, 0, 0, 0]))).toEqual(true));
+	test('Should return the start of the day', () => expect(pastDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([pastDate.getFullYear(), pastDate.getMonth() + 1, pastDate.getDate(), 0, 0, 0, 1]))).toEqual(false));
+	test('Should return the start of the day', () => expect(pastDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([pastDate.getFullYear(), pastDate.getMonth() + 1, pastDate.getDate(), 0, 0, 1, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(pastDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([pastDate.getFullYear(), pastDate.getMonth() + 1, pastDate.getDate(), 0, 1, 0, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(pastDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([pastDate.getFullYear(), pastDate.getMonth() + 1, pastDate.getDate(), 1, 0, 0, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(pastDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([pastDate.getFullYear(), pastDate.getMonth() + 1, pastDate.getDate() + 1, 0, 0, 0, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(pastDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([pastDate.getFullYear() + 1, pastDate.getMonth() + 1, pastDate.getDate(), 0, 0, 0, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(pastDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([pastDate.getFullYear(), pastDate.getMonth() + 2, pastDate.getDate(), 0, 0, 0, 0]))).toEqual(false));
+
+	test('Should return the start of the day', () => expect(ancientDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([ancientDate.getFullYear(), ancientDate.getMonth() + 1, ancientDate.getDate()]))).toEqual(true));
+	test('Should return the start of the day', () => expect(ancientDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([ancientDate.getFullYear(), ancientDate.getMonth() + 1, ancientDate.getDate(), 0, 0, 0, 0]))).toEqual(true));
+	test('Should return the start of the day', () => expect(ancientDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([ancientDate.getFullYear(), ancientDate.getMonth() + 1, ancientDate.getDate(), 0, 0, 0, 1]))).toEqual(false));
+	test('Should return the start of the day', () => expect(ancientDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([ancientDate.getFullYear(), ancientDate.getMonth() + 1, ancientDate.getDate(), 0, 0, 1, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(ancientDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([ancientDate.getFullYear(), ancientDate.getMonth() + 1, ancientDate.getDate(), 0, 1, 0, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(ancientDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([ancientDate.getFullYear(), ancientDate.getMonth() + 1, ancientDate.getDate(), 1, 0, 0, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(ancientDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([ancientDate.getFullYear(), ancientDate.getMonth() + 1, ancientDate.getDate() + 1, 0, 0, 0, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(ancientDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([ancientDate.getFullYear() + 1, ancientDate.getMonth() + 1, ancientDate.getDate(), 0, 0, 0, 0]))).toEqual(false));
+	test('Should return the start of the day', () => expect(ancientDateTime.startOf(DateTime.Unit.DAY).equals(new DateTime([ancientDate.getFullYear(), ancientDate.getMonth() + 2, ancientDate.getDate(), 0, 0, 0, 0]))).toEqual(false));
 });

@@ -1,13 +1,13 @@
 import { expect } from '@jest/globals';
-import { DateTime } from './module.js?locale=en-US&global=true';
+import { DateTime } from './test-module.js?locale=en-US&global=true';
 import { _dateFromArray, _get } from '../src/utils.js';
 
 /**
  * Checks that the properties of a {@link Date} object match the properties of a {@link DateTime} object
  *
- * @param {string} description
- * @param {DateTime} dateTime
- * @param {Date} date
+ * @param {string} description The description of the test.
+ * @param {DateTime} dateTime The date time object.
+ * @param {Date} date The date object.
  */
 const _checkDateProperties = (description, dateTime, date) => {
 	console.debug(`Checking DateTime: ${dateTime.toLocaleString()} properties against Date: ${date.toLocaleString()} for ${description}`);
@@ -25,16 +25,16 @@ const _checkDateProperties = (description, dateTime, date) => {
 /**
  * Creates new {@link Date} and {@link DateTime} objects and returns them in an {@link Object}
  *
- * @param {Array<number>} dateValues
- * @param {boolean} [utc=false]
- * @returns {{date: Date, dateTime: DateTime}}
+ * @param {Array<number>} dateValues The values to use to create the date.
+ * @param {boolean} [utc=false] Indicates that the date should be created as UTC.
+ * @returns {{date: Date, dateTime: DateTime}} The date and date time objects.
  */
 const _createDatesFromArray = (dateValues, utc = false) => ({ date: _dateFromArray(dateValues, utc), dateTime: new DateTime(dateValues, { utc }) });
 
 /**
  * Create a {@link Date} instance as UTC.
  *
- * @returns {Date}
+ * @returns {Date} The date.
  */
 const _createCurrentUtcDate = () => {
 	const date = new Date();
@@ -43,29 +43,10 @@ const _createCurrentUtcDate = () => {
 };
 
 /**
- * Calculates the day of the year from the provided {@link Date} object.
- *
- * @param {Date} date
- * @returns {number}
- */
-// const _calculateDayOfYear = (date) => {
-//   const dayCount = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-//   const month = date.getMonth();
-//   const day = date.getDate();
-//   let dayOfYear = dayCount[month] + day;
-
-//   if (month > 1 && _isLeapYear(date.getFullYear())) {
-//     dayOfYear++;
-//   }
-
-//   return dayOfYear;
-// };
-
-/**
  * Determines if the date is in Daylight Savings Time
  *
- * @param {Date} date
- * @returns {boolean}
+ * @param {Date} date The date to check.
+ * @returns {boolean} `true` if the date is in Daylight Savings Time, `false` otherwise.
  */
 const _isDST = (date) => {
 	const year = date.getFullYear();

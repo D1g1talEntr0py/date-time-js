@@ -1,22 +1,35 @@
-// eslint-disable-next-line jsdoc/valid-types
 /** @typedef { import('./locale.js').default } Locale */
 /** @typedef {('short'|'long')} TimeZoneFormat */
 
-/** @constant {Object.<string, *>} */
+let _invalidDate;
+/** @constant {Object<string, Date>} */
+const constants = Object.defineProperty({}, 'invalidDate', {
+	/**
+	 * Gets an instance of an invalid date.
+	 * This is used to determine if a date is invalid.
+	 *
+	 * @returns {Date} An instance of an invalid date
+	 */
+	get() {
+		return _invalidDate ??= new Date('');
+	}
+});
+
+/** @constant {Object<string, *>} */
 const i18n = {
 	/** @type {?string} */
 	locale: undefined,
-	/** @type {Object.<string, Locale>} */
+	/** @type {Object<string, Locale>} */
 	locales: {},
-	/** @type {Object.<string, Object>} */
+	/** @type {Object<string, Object>} */
 	localeOptions: {},
 	/** @type {string} */
 	defaultLocale: Intl.NumberFormat().resolvedOptions().locale,
-	/** @type {Object.<string, TimeZoneFormat>} */
-	timeZoneFormats: Object.freeze({ SHORT: 'short',	LONG: 'long' })
+	/** @type {Object<string, TimeZoneFormat>} */
+	timeZoneFormats: Object.freeze({ SHORT: 'short', LONG: 'long' })
 };
 
-/** @constant {Object.<string, RegExp>} */
+/** @constant {Object<string, RegExp>} */
 const regExps = {
 	nonWord: /[\W_]/,
 	timeZoneOffset: /^(?:GMT)([+-])(0\d|1\d|2[0-3])[:|.]([0-5]\d)[:|.]?([0-5]\d)?$/,
@@ -24,7 +37,7 @@ const regExps = {
 	isoParsingPattern: /^(?<year>\d{4})-(?<month>0[1-9]|1[0-2])-(?<day>0[1-9]|[12][\d]|[3][01])[\sT]?(?<hour>0\d|1\d|2[0-3])?:?(?<minute>[0-5]\d)?:?(?<second>[0-5]\d)?[.:]?(?<millisecond>\d{1,9})?(?<zoneOffset>[+-]\d\d:?\d\d|Z)?$/
 };
 
-/** @constant {Object.<string, string>} */
+/** @constant {Object<string, string>} */
 const DateTimeUnit = Object.freeze({
 	YEAR: 'year',
 	MONTH: 'month',
@@ -35,7 +48,7 @@ const DateTimeUnit = Object.freeze({
 	MILLISECOND: 'millisecond'
 });
 
-/** @constant {Object.<string, string>} */
+/** @constant {Object<string, string>} */
 const DateField = {
 	[DateTimeUnit.YEAR]: 'FullYear',
 	[DateTimeUnit.MONTH]: 'Month',
@@ -47,7 +60,7 @@ const DateField = {
 	dayOfTheWeek: 'Day'
 };
 
-/** @constant {Object.<string, string>} */
+/** @constant {Object<string, string>} */
 const PeriodUnit = Object.freeze({
 	YEARS: `${DateTimeUnit.YEAR}s`,
 	MONTHS: `${DateTimeUnit.MONTH}s`,
@@ -59,7 +72,7 @@ const PeriodUnit = Object.freeze({
 	MILLISECONDS: `${DateTimeUnit.MILLISECOND}s`
 });
 
-/** @constant {Object.<string, string>} */
+/** @constant {Object<string, string>} */
 const periodUnitFields = Object.freeze({
 	[PeriodUnit.YEARS]: DateTimeUnit.YEAR,
 	[PeriodUnit.MONTHS]: DateTimeUnit.MONTH,
@@ -71,13 +84,13 @@ const periodUnitFields = Object.freeze({
 	[PeriodUnit.MILLISECONDS]: DateTimeUnit.MILLISECOND
 });
 
-/** @constant {Object.<string, string>} */
+/** @constant {Object<string, string>} */
 const DateOperation = { ADD: 'add', SUBTRACT: 'subtract' };
 
-/** @constant {Object.<string, string>} */
+/** @constant {Object<string, string>} */
 const DateParsingToken = { YEAR: 'Y', MONTH: 'M', DAY: 'D', HOUR_24: 'H', HOUR_12: 'h', MINUTE: 'm', SECOND: 's', MILLISECOND: 'S', ZONE_OFFSET: 'Z', MERIDIEM: 'A' };
 
-/** @constant {Object.<string, RegExp>} */
+/** @constant {Object<string, RegExp>} */
 const dateParserTokenMappings = {
 	[DateParsingToken.YEAR]: /(?<year>\d{4})/,
 	[DateParsingToken.MONTH]: /(?<month>0?[1-9]|1[0-2])/,
@@ -91,7 +104,7 @@ const dateParserTokenMappings = {
 	[DateParsingToken.MERIDIEM]: /(?<meridiem>[AaPp][Mm]|[AaPp]\.[Mm]\.)/
 };
 
-/** @constant {Object.<string, number>} */
+/** @constant {Object<string, number>} */
 const MillisecondsIn = {
 	YEARS: 3.1536e10,
 	MONTHS: 2.592e9,
@@ -102,4 +115,5 @@ const MillisecondsIn = {
 	MILLISECONDS: 1
 };
 
+export const { invalidDate } = constants;
 export { i18n, regExps, DateTimeUnit, DateField, PeriodUnit, periodUnitFields, DateOperation, DateParsingToken, dateParserTokenMappings, MillisecondsIn };

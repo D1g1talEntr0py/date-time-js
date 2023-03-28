@@ -4,7 +4,8 @@ import { DateField, DateTimeUnit, MillisecondsIn } from './constants.js';
 /**
  * BaseDateTime - A class to hold the basic properties of a date
  *
- * @module BaseDateTime
+ * @module {BaseDateTime} base-date-time
+ * @author d1g1tal <jason.dimeo@gmail.com>
  */
 export default class BaseDateTime {
 	/** @type {Date} */
@@ -39,9 +40,10 @@ export default class BaseDateTime {
 	#isValid;
 
 	/**
+	 * Create a new {@link BaseDateTime} instance from a native {@link Date}
 	 *
-	 * @param {Date} [date = new Date()]
-	 * @param {boolean} [utc = false]
+	 * @param {Date} [date = new Date()] The date used to retrieve properties from
+	 * @param {boolean} [utc = false] Indicates that the UTC flag should be used when retrieving a property
 	 */
 	constructor(date = new Date(), utc = false) {
 		this.#date = date;
@@ -49,113 +51,127 @@ export default class BaseDateTime {
 	}
 
 	/**
+	 * Gets the {@link Date} object.
 	 *
-	 * @returns {Date}
+	 * @returns {Date} The date.
 	 */
 	get date() {
 		return this.#date;
 	}
 
 	/**
+	 * Get the flag indicating if the date is in UTC mode.
 	 *
-	 * @returns {boolean}
+	 * @returns {boolean} `true` if the date is in UTC mode, `false` otherwise.
 	 */
 	get utc() {
 		return this.#utc;
 	}
 
 	/**
+	 * Get the year.
 	 *
-	 * @returns {number}
+	 * @returns {number} The year
 	 */
 	get [DateTimeUnit.YEAR]() {
 		return this.#year ??= _get(this.#date, DateField.year, this.#utc);
 	}
 
 	/**
+	 * Get the month of the year.
 	 *
-	 * @returns {number}
+	 * @returns {number} The month of the year.
 	 */
 	get [DateTimeUnit.MONTH]() {
 		return this.#month ??= _get(this.#date, DateField.month, this.#utc) + 1;
 	}
 
 	/**
+	 * Get the day of the month.
 	 *
-	 * @returns {number}
+	 * @returns {number} The day of the month.
 	 */
 	get [DateTimeUnit.DAY]() {
 		return this.#day ??= _get(this.#date, DateField.day, this.#utc);
 	}
 
 	/**
+	 * Get the hour of the day.
 	 *
-	 * @returns {number}
+	 * @returns {number} The hour of the day.
 	 */
 	get [DateTimeUnit.HOUR]() {
 		return this.#hour ??= _get(this.#date, DateField.hour, this.#utc);
 	}
 
 	/**
+	 * Get the minute of the hour.
 	 *
-	 * @returns {number}
+	 * @returns {number} The minute of the hour.
 	 */
 	get [DateTimeUnit.MINUTE]() {
 		return this.#minute ??= _get(this.#date, DateField.minute, this.#utc);
 	}
 
 	/**
+	 * Get the second of the minute.
 	 *
-	 * @returns {number}
+	 * @returns {number} The second of the minute.
 	 */
 	get [DateTimeUnit.SECOND]() {
 		return this.#second ??= _get(this.#date, DateField.second, this.#utc);
 	}
 
 	/**
+	 * Get the millisecond of the second.
 	 *
-	 * @returns {number}
+	 * @returns {number} The millisecond of the second.
 	 */
 	get [DateTimeUnit.MILLISECOND]() {
 		return this.#millisecond ??= _get(this.#date, DateField.millisecond, this.#utc);
 	}
 
 	/**
-	 * Get the day of the week
+	 * Get the day of the week.
 	 *
-	 * @returns {number}
+	 * @returns {number} The day of the week.
 	 */
 	get dayOfTheWeek() {
 		return this.#dayOfTheWeek ??= _get(this.#date, DateField.dayOfTheWeek, this.#utc);
 	}
 
 	/**
-	 *
+	 * Get the day of the year.
 	 * {@see https://stackoverflow.com/a/27790471/230072}
 	 *
-	 * @returns {number}
+	 * @returns {number} The day of the year.
 	 */
 	get dayOfTheYear() {
 		return this.#dayOfTheYear ??= (this.month - 1) * 31 - (this.month > 1 ? (1054267675 >> this.month * 3 - 6 & 7) - (this.year & 3 || !(this.year % 25) && this.year & 15 ? 0 : 1) : 0) + this.day;
 	}
 
 	/**
+	 * Get the number of days in the month.
+	 * 1. If the month is February, return 28 or 29 depending on whether the year is a leap year.
+	 * 2. Otherwise, return 30 or 31 depending on whether the month is September, April, June, or November.
 	 *
-	 * @returns {number}
+	 * @returns {number} The number of days in the month.
 	 */
 	get daysInMonth() {
 		return this.#daysInMonth ??= this.month === 2 ? this.year & 3 || !(this.year % 25) && this.year & 15 ? 28 : 29 : 30 + (this.month + (this.month >> 3) & 1);
 	}
 
 	/**
+	 * Get the flag indicating if the date is old and handles timezone offsets differently.
 	 *
-	 * @returns {boolean}
+	 * @returns {boolean} `true` if the date is a legacy date, `false` otherwise.
 	 */
 	get isLegacyDate() {
 		return this.#isLegacyDate ??= this.#date.getTimezoneOffset() % 15 !== 0;
 	}
 
 	/**
+	 * Get the flag indicating if the date is in daylight savings time.
 	 *
 	 * Let x be the expected number of milliseconds into the year of interest without factoring in daylight savings.
 	 * Let y be the number of milliseconds since the Epoch from the start of the year of the date of interest.
@@ -176,16 +192,18 @@ export default class BaseDateTime {
 	}
 
 	/**
+	 * Returns the stored time value in milliseconds since midnight, January 1, 1970 UTC.
 	 *
-	 * @returns {number}
+	 * @returns {number} The number of milliseconds since midnight, January 1, 1970 UTC.
 	 */
 	valueOf() {
 		return this.#date.valueOf();
 	}
 
 	/**
+	 * A String value that is used in the creation of the default string description of an object.
 	 *
-	 * @returns {string}
+	 * @returns {string} The default string describing this object
 	 */
 	get [Symbol.toStringTag]() {
 		return 'BaseDateTime';

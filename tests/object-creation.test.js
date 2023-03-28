@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { DateTime } from './module.js?locale=en-US&global=true';
+import { DateTime } from './test-module.js?locale=en-US&global=true';
 import { expect, describe, test } from '@jest/globals';
 import { _checkDateProperties, _createCurrentUtcDate } from './test.utilities.js';
 
@@ -27,21 +27,29 @@ describe('Modern Dates', () => {
 	const currentDate = new Date();
 	const currentUTCDate = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), currentDate.getHours(), currentDate.getMinutes(), currentDate.getSeconds(), currentDate.getMilliseconds()));
 	const pastDate = new Date(1986, 9, 14, 22, 5, 18, 334);
+	const pastUtcDate = new Date(Date.UTC(1986, 9, 14, 22, 5, 18, 334));
 
 	test.each([
 		['default', new DateTime(), currentDate],
-		['Date', new DateTime(currentDate), currentDate],
-		['Number', new DateTime(currentDate.getTime()), new Date(currentDate.getTime())],
-		['String', new DateTime('1986-10-14T22:05:18.334'), pastDate],
+		['Date', new DateTime(currentDate.valueOf()), currentDate],
+		['Number', new DateTime(currentDate.valueOf()), new Date(currentDate.valueOf())],
+		['String', new DateTime(pastDate.toISOString()), pastDate],
 		['Array', new DateTime([1986, 10, 14, 22, 5, 18, 334]), pastDate],
 		['undefined', new DateTime(undefined), new Date()]
 	])('Check DateTime properties using "%s" constructor', _checkDateProperties);
 
-	const pastUtcDate = new Date(Date.UTC(1986, 9, 14, 22, 5, 18, 334));
+	test.each([
+		['default', DateTime.utc(), currentDate],
+		['Date', new DateTime(currentUTCDate.valueOf()), currentUTCDate],
+		['Number', new DateTime(currentUTCDate.valueOf()), new Date(currentUTCDate.valueOf())],
+		['String', new DateTime(currentUTCDate.toISOString()), currentUTCDate],
+		['Array', new DateTime([currentUTCDate.getFullYear(), currentUTCDate.getMonth() + 1, currentUTCDate.getDate(), currentUTCDate.getHours(), currentUTCDate.getMinutes(), currentUTCDate.getSeconds(), currentUTCDate.getMilliseconds()]), currentUTCDate],
+		['undefined', new DateTime(undefined), new Date()]
+	])('Check UTC DateTime properties using "%s" constructor', _checkDateProperties);
 
 	test.each([
-		['Date', new DateTime(pastUtcDate, { utc: true }), pastUtcDate],
-		['Number', new DateTime(pastUtcDate.valueOf(), { utc: true }), pastUtcDate],
+		['Date', new DateTime(pastUtcDate.valueOf(), { utc: true }), pastUtcDate],
+		['Number', new DateTime(pastUtcDate.valueOf(), { utc: true }), new Date(pastUtcDate.valueOf())],
 		['String', new DateTime('1986-10-14T22:05:18.334', { utc: true }), pastUtcDate],
 		['Array', new DateTime([1986, 10, 14, 22, 5, 18, 334], { utc: true }), pastUtcDate],
 		['undefined', new DateTime(undefined, { utc: true }), _createCurrentUtcDate()],
@@ -61,8 +69,8 @@ describe('Ancient Dates', () => {
 	date.setFullYear(1);
 
 	test.each([
-		['Date', new DateTime(date), date],
-		['Number', new DateTime(date.getTime()), new Date(date.getTime())],
+		['Date', new DateTime(date.valueOf()), date],
+		['Number', new DateTime(date.valueOf()), new Date(date.valueOf())],
 		['String', new DateTime('0001-01-01T00:00:00.000'), date],
 		['Array', new DateTime([1, 1, 1, 0, 0, 0, 0]), date]
 	])('Check DateTime properties using "%s" constructor', _checkDateProperties);
@@ -71,7 +79,7 @@ describe('Ancient Dates', () => {
 	utcDate.setUTCFullYear(1);
 
 	test.each([
-		['Date', new DateTime(utcDate, { utc: true }), utcDate],
+		['Date', new DateTime(utcDate.valueOf(), { utc: true }), utcDate],
 		['Number', new DateTime(utcDate.valueOf(), { utc: true }), utcDate],
 		['String', new DateTime('0001-01-01T00:00:00.000Z'), utcDate],
 		['Array', new DateTime([1, 1, 1, 0, 0, 0, 0], { utc: true }), utcDate]

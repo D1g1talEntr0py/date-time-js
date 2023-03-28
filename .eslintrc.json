@@ -35,6 +35,7 @@
 	"overrides": [],
 	"settings": {
 		"jsdoc": {
+			"mode": "typescript",
 			"preferredTypes": { "object": "Object", "Iterator": "Iterator", "IterableIterator": "IterableIterator" },
 			"structuredTags": {	"template": {	"name": "namepath-defining", "type": false } },
 			"tagNamePreference": {
