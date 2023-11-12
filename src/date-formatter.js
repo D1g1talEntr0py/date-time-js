@@ -1,6 +1,7 @@
 import { _stringSplice } from '@d1g1tal/chrysalis';
 import { i18n, regExps } from './constants.js';
 import PatternFormat from './pattern-format.js';
+
 /** @typedef { import('./date-time.js').default } DateTime */
 
 /**
@@ -45,7 +46,7 @@ const	flags = new Map([
  * Class used to format dates into {@link string} representations.
  *
  * @module DateFormatter
- * @author d1g1tal <jason.dimeo@gmail.com>
+ * @author D1g1talEntr0py <jason.dimeo@gmail.com>
  */
 export default class DateFormatter {
 	/**

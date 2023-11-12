@@ -11,7 +11,7 @@ import { DateTimeUnit, DateOperation, MillisecondsIn, DateField, invalidDate } f
  * @returns {Date} The date.
  */
 const _dateFromArray = ([ year, month = 1, day = 1, hours = 0, minutes = 0, seconds = 0, milliseconds = 0 ], utc = false) => {
-	// Decrement the value for month because it is 0 based in the native JavaScript Date object.
+	// ლ(ಠ益ಠლ) Decrement the value for month because it is 0 based in the native JavaScript Date object.
 	--month;
 
 	const date = utc ? new Date(Date.UTC(year, month, day, hours, minutes, seconds, milliseconds)) : new Date(year, month, day, hours, minutes, seconds, milliseconds);
@@ -44,9 +44,9 @@ const _convertLegacyDate = ({ year, month, day, hour, minute, second, millisecon
  * @param {string} field The field to modify.
  * @param {number} value The value to set.
  * @param {boolean} [utc=false] Indicates that the UTC flag should be used when retrieving a property.
- * @returns {number} The value that was set.
+ * @returns {number} The value of the specified field.
  */
-const _set = (date, field, value, utc = false) => date[`${utc ? 'setUTC' : 'set'}${field}`](value);
+const _set = (date, field, value, utc = false) => date[`${utc ? 'setUTC' : 'set'}${field}`]?.(value) ?? null;
 
 /**
  * Gets the value of the specified date field from the Date object
@@ -56,7 +56,7 @@ const _set = (date, field, value, utc = false) => date[`${utc ? 'setUTC' : 'set'
  * @param {boolean} [utc=false] Indicates that the UTC flag should be used when retrieving a property.
  * @returns {number} The value of the specified field.
  */
-const _get = (date, field, utc = false) => date[`${utc ? 'getUTC' : 'get'}${field}`]();
+const _get = (date, field, utc = false) => date[`${utc ? 'getUTC' : 'get'}${field}`]?.() ?? null;
 
 /**
  * Creates a new {@link Date} object starting at the specified unit.

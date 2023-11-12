@@ -3,11 +3,13 @@ import DateFormatter from './date-formatter.js';
 import DateParser from './date-parser.js';
 import PatternFormat from './pattern-format.js';
 
+/** @typedef {import('./date-time.js').default} DateTime */
+
 /**
  * A model object to store locale specific information for parsing and formatting a {@link DateTime} object.
  *
  * @module {Locale} locale
- * @author d1g1tal <jason.dimeo@gmail.com>
+ * @author D1g1talEntr0py <jason.dimeo@gmail.com>
  */
 export default class Locale {
 	/** @type {string} */

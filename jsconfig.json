@@ -2,10 +2,10 @@
   "compilerOptions": {
     "baseUrl": "./",
     "checkJs": false,
-    "module": "ES2022",
-    "target": "ES2022",
+    "module": "NodeNext",
+    "target": "ESNext",
     "moduleResolution": "NodeNext"
   },
-  "include": [ "./*", "src/**/*.js", "tests/*.js" ],
+  "include": [ "./*", "src/**/*.js", "tests/*.js", "benchmark/benchmark.js" ],
   "exclude": [ "node_modules", "dist" ]
 }

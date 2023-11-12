@@ -1,49 +1,55 @@
+import EvictingCache from '@d1g1tal/collections/evicting-cache.js';
 import BaseDateTime from './base-date-time.js';
+import { DateParsingToken, dateParserTokenMappings, invalidDate, regExps } from './constants.js';
 import { _dateFromArray } from './utils.js';
-import { _arrayRemove } from '@d1g1tal/chrysalis';
-import { DateParsingToken, dateParserTokenMappings, regExps, invalidDate } from './constants.js';
 
+/**
+ * Class used to parse {@link string} representations of dates.
+ *
+ * @module DateParser date-parser
+ * @author D1g1talEntr0py <jason.dimeo@gmail.com>
+ */
 export default class DateParser {
-	#dateParsingPatterns;
-	#customParsingPatterns;
+	/** @type {EvictingCache<string, RegExp>} */
+	#parsingPatterns;
+	/** @type {string} */
+	#localeDatePattern;
+	/** @type {string} */
+	#localeTimePattern;
+	/** @type {RegExp} */
+	#localeDateRegExp;
 
 	/**
+	 * Create a new {@link DateParser} instance.
 	 *
-	 * @param {string} localeDatePattern
-	 * @param {string} localeTimePattern
+	 * @param {string} localeDatePattern The locale date pattern.
+	 * @param {string} localeTimePattern The locale time pattern.
 	 */
 	constructor(localeDatePattern, localeTimePattern) {
-		/** @type {Array<RegExp>} */
-		this.#dateParsingPatterns = [ regExps.isoParsingPattern, _fromLocalePatterns(localeDatePattern, localeTimePattern) ];
-		/** @type {Map<string, RegExp>} */
-		this.#customParsingPatterns = new Map();
+		this.#parsingPatterns = new EvictingCache();
+		this.#localeDatePattern = localeDatePattern;
+		this.#localeTimePattern = localeTimePattern;
 	}
 
 	/**
 	 * Parse a string representation of a date and return a {@link Date} object.
-	 * The string is parsed using a {@link DateParserPattern} parameter or one from the pre-defined array
 	 *
-	 * @param {string} date
-	 * @param {Object} options
-	 * @param {boolean} [options.utc]
-	 * @param {string} [options.pattern]
-	 * @returns {BaseDateTime}
+	 * @param {string} date The date to parse.
+	 * @param {Object} options The options to use when parsing the date.
+	 * @param {boolean} [options.utc=false] Indicates that the UTC flag should be used when retrieving a property.
+	 * @param {string} [options.pattern] The pattern to use when parsing the date.
+	 * @returns {BaseDateTime} The parsed date.
 	 */
 	parse(date, { utc = false, pattern }) {
-		let parsedDate, dateTokens;
+		/** @type {Date} */
+		let parsedDate;
+		/** @type {Array<string>} */
+		let dateTokens;
 
 		if (pattern) {
-			let dateParsingPattern = this.#customParsingPatterns.get(pattern);
-			if (!dateParsingPattern) {
-				dateParsingPattern = new RegExp(`^${_appendRegExp(_createPatternTokens(pattern))}$`);
-				this.#customParsingPatterns.set(pattern, dateParsingPattern);
-			}
-
-			dateTokens = date.match(dateParsingPattern);
+			dateTokens = date.match(this.#parsingPatterns.getOrPut(pattern, () => new RegExp(`^${this.#appendRegExp(this.#createPatternTokens(pattern))}$`)));
 		} else {
-			for (let i = 0, length = this.#dateParsingPatterns.length; i < length; i++) {
-				if ((dateTokens = date.match(this.#dateParsingPatterns[i]))) break;
-			}
+			dateTokens = date.match(regExps.isoParsingPattern) ?? date.match(this.#localeDateRegExp ??= this.#fromLocalePatterns(this.#localeDatePattern, this.#localeTimePattern));
 		}
 
 		if (dateTokens) {
@@ -52,9 +58,9 @@ export default class DateParser {
 
 			if (zoneOffset !== undefined) {
 				utc = true;
-				if (zoneOffset !== '0') {
+				if (zoneOffset != '0') {
 					// Add the offset to the milliseconds
-					millisecond += 0 - (zoneOffset == 'Z' ? 0 : _parseZoneOffset(zoneOffset)) * 6e4;
+					millisecond += 0 - (zoneOffset == 'Z' ? 0 : this.#parseZoneOffset(zoneOffset)) * 6e4;
 				}
 			} else if (meridiem !== undefined) {
 				hour = +hour;
@@ -72,68 +78,79 @@ export default class DateParser {
 
 		return new BaseDateTime(parsedDate ?? invalidDate, utc);
 	}
-}
 
-/**
- *
- * @param {string} datePattern - The locale date pattern
- * @param {string} timePattern - The locale time pattern
- * @returns {RegExp}
- */
-const _fromLocalePatterns = (datePattern, timePattern) => {
-	const tokenTransformers = {};
-	const timeTokens = _createPatternTokens(timePattern);
-	const secondsDelimiterIndex = timeTokens.lastIndexOf(DateParsingToken.SECOND) - 1;
+	/**
+	 * Filter out anything other than a letter, digit or underscore or the element isn't already in the resulting array.
+	 *
+	 * @param {string} pattern The pattern to create tokens from.
+	 * @returns {Array<string>} The unique pattern tokens.
+	 */
+	#createPatternTokens(pattern) {
+		/** @type {Array<string>} */
+		const result = [];
+		/** @type {Set<string>} */
+		const patternTokens = new Set();
 
-	if (!(timeTokens[secondsDelimiterIndex] in dateParserTokenMappings)) {
-		const spaceTokenIndex = timeTokens.lastIndexOf(DateParsingToken.MERIDIEM) - 1;
-		if (timeTokens[spaceTokenIndex] == ' ') {
-			_arrayRemove(timeTokens, spaceTokenIndex);
+		for (const token of pattern) {
+			if (!patternTokens.has(token) || regExps.nonWord.test(token)) { patternTokens.add(result[result.length] = token) }
 		}
 
-		const timeDelimiter = timeTokens[secondsDelimiterIndex];
-		tokenTransformers[DateParsingToken.SECOND] = (regExpSource) => `(?:${timeDelimiter}${regExpSource})?`;
-		tokenTransformers[DateParsingToken.MERIDIEM] = (regExpSource) => `(?:\\s${regExpSource})?`;
-
-		_arrayRemove(timeTokens, secondsDelimiterIndex);
+		return result;
 	}
 
-	return new RegExp(`^${_appendRegExp(_createPatternTokens(datePattern))}(?:\\s${_appendRegExp(timeTokens, tokenTransformers)})?$`);
-};
+	/**
+	 * Create a regular expression from the locale date and time patterns.
+	 * If the time pattern doesn't contain seconds, then the seconds delimiter is removed from the date pattern.
+	 * If the time pattern doesn't contain meridiem, then the space between the time and meridiem is removed from the date pattern.
+	 *
+	 * @param {string} datePattern The locale date pattern.
+	 * @param {string} timePattern The locale time pattern.
+	 * @returns {RegExp} The regular expression.
+	 */
+	#fromLocalePatterns(datePattern, timePattern) {
+		const tokenTransformers = Object.create(null);
+		const timeTokens = this.#createPatternTokens(timePattern);
+		const secondsDelimiterIndex = timeTokens.lastIndexOf(DateParsingToken.SECOND) - 1;
 
-/**
- * Filter out anything other than a letter, digit or underscore or the element isn't already in the resulting array.
- *
- * @param {string} pattern
- * @returns {Array<string>} the unique pattern tokens
- */
-const _createPatternTokens = (pattern) => Array.from(pattern).filter((elem, index, array) => regExps.nonWord.test(elem) || array.indexOf(elem) >= index);
+		if (!(timeTokens[secondsDelimiterIndex] in dateParserTokenMappings)) {
+			const spaceTokenIndex = timeTokens.lastIndexOf(DateParsingToken.MERIDIEM) - 1;
+			if (timeTokens[spaceTokenIndex] == ' ') {
+				timeTokens.splice(spaceTokenIndex, 1);
+			}
 
-/**
- *
- * @param {Array<string>} patternTokens
- * @param {Object} [tokenTransformers={}]
- * @returns {string}
- */
-const _appendRegExp = (patternTokens, tokenTransformers = {}) => {
-	let regExp = '';
+			const timeDelimiter = timeTokens[secondsDelimiterIndex];
+			tokenTransformers[DateParsingToken.SECOND] = (regExpSource) => `(?:${timeDelimiter}${regExpSource})?`;
+			tokenTransformers[DateParsingToken.MERIDIEM] = (regExpSource) => `(?:\\s${regExpSource})?`;
 
-	for (let i = 0, length = patternTokens.length, token, regExpSource; i < length; i++) {
-		token = patternTokens[i];
-		regExpSource = dateParserTokenMappings[token]?.source;
-		regExp += tokenTransformers[token]?.(regExpSource) ?? regExpSource ?? token;
+			timeTokens.splice(secondsDelimiterIndex, 1);
+		}
+
+		return new RegExp(`^${this.#appendRegExp(this.#createPatternTokens(datePattern))}(?:\\s${this.#appendRegExp(timeTokens, tokenTransformers)})?$`);
 	}
 
-	return regExp;
-};
+	/**
+	 * Append the regular expression source for each token in the pattern.
+	 * If a token transformer is provided for a token, then the token transformer is used to transform the regular expression source.
+	 * If the token doesn't have a regular expression source, then the token is used as the regular expression source.
+	 * If the token is a non-word character, then the token is escaped.
+	 * If the token is a word character, then the token is wrapped in a non-capturing group.
+	 *
+	 * @param {Array<string>} patternTokens The pattern tokens.
+	 * @param {Object} [tokenTransformers={}] The token transformers.
+	 * @returns {string} The appended regular expression.
+	 */
+	#appendRegExp(patternTokens, tokenTransformers = {}) {
+		return patternTokens.map((token) => tokenTransformers[token]?.(dateParserTokenMappings[token]?.source) ?? dateParserTokenMappings[token]?.source ?? token).join('');
+	}
 
-/**
- * Convert the time zone offset from hours to the number of minutes.
- *
- * @param {string} offset
- * @returns {number}
- */
-const _parseZoneOffset = (offset = '') => {
-	const [ hours = 0, minutes = 0 ] = offset.includes(':') ? offset.split(':').map(Number) : [ +offset / 100 ];
-	return hours * 60 + minutes;
-};
+	/**
+	 * Convert the time zone offset from hours to the number of minutes.
+	 *
+	 * @param {string} offset The time zone offset.
+	 * @returns {number} The number of minutes.
+	 */
+	#parseZoneOffset(offset = '') {
+		const [ hours = 0, minutes = 0 ] = offset.includes(':') ? offset.split(':').map(Number) : [ +offset / 100 ];
+		return hours * 60 + minutes;
+	}
+}

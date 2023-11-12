@@ -79,8 +79,8 @@ describe('Parse Local ISO Dates and Times', () => {
 		expect(dateTime.valueOf()).toBe(date.valueOf());
 	});
 
-	test('parses millisecond up to 9 digits', () => {
-		const date = '2019-03-25T06:41:00.999999999';
+	test('parses millisecond up to 3 digits', () => {
+		const date = '2019-03-25T06:41:00.999';
 		const ds = new DateTime(date);
 		const ms = new Date(2019, 2, 25, 6, 41, 0, 999);
 		expect(ds.valueOf()).toEqual(ms.valueOf());

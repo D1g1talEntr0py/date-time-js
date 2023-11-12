@@ -10,7 +10,6 @@ import { _dateFromArray, _get } from '../src/utils.js';
  * @param {Date} date The date object.
  */
 const _checkDateProperties = (description, dateTime, date) => {
-	console.debug(`Checking DateTime: ${dateTime.toLocaleString()} properties against Date: ${date.toLocaleString()} for ${description}`);
 	expect(dateTime.toDate().toString()).not.toBe('Invalid Date');
 	expect(dateTime.getYear()).toBe(_get(date, 'FullYear', dateTime.isUtc()));
 	// Native JavaScript Date uses 0-based months. ლ(ಠ益ಠლ)

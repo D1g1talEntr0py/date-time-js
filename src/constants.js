@@ -1,19 +1,5 @@
 /** @typedef { import('./locale.js').default } Locale */
-/** @typedef {('short'|'long')} TimeZoneFormat */
-
-let _invalidDate;
-/** @constant {Object<string, Date>} */
-const constants = Object.defineProperty({}, 'invalidDate', {
-	/**
-	 * Gets an instance of an invalid date.
-	 * This is used to determine if a date is invalid.
-	 *
-	 * @returns {Date} An instance of an invalid date
-	 */
-	get() {
-		return _invalidDate ??= new Date('');
-	}
-});
+/** @typedef {'short'|'long'} TimeZoneFormat */
 
 /** @constant {Object<string, *>} */
 const i18n = {
@@ -34,7 +20,7 @@ const regExps = {
 	nonWord: /[\W_]/,
 	timeZoneOffset: /^(?:GMT)([+-])(0\d|1\d|2[0-3])[:|.]([0-5]\d)[:|.]?([0-5]\d)?$/,
 	formattingTokens: /\[([^\]]+)]|YYYY|M{1,4}|Do|D{1,2}|d{1,3}|H{1,2}|h{1,2}|m{1,2}|s{1,2}|SSS|Z{1,2}|z{1,3}|a|A/g,
-	isoParsingPattern: /^(?<year>\d{4})-(?<month>0[1-9]|1[0-2])-(?<day>0[1-9]|[12][\d]|[3][01])[\sT]?(?<hour>0\d|1\d|2[0-3])?:?(?<minute>[0-5]\d)?:?(?<second>[0-5]\d)?[.:]?(?<millisecond>\d{1,9})?(?<zoneOffset>[+-]\d\d:?\d\d|Z)?$/
+	isoParsingPattern: /^(?<year>\d{4})-(?<month>0[1-9]|1[0-2])-(?<day>0[1-9]|[12]\d|3[01])([T\s](?<hour>0\d|1\d|2[0-3]):(?<minute>[0-5]\d)(:(?<second>[0-5]\d)(\.?(?<millisecond>\d{1,3}))?)?(?<zoneOffset>[+-](?:\d\d:?\d\d)|Z)?)?$/
 };
 
 /** @constant {Object<string, string>} */
@@ -49,7 +35,7 @@ const DateTimeUnit = Object.freeze({
 });
 
 /** @constant {Object<string, string>} */
-const DateField = {
+const DateField = Object.freeze({
 	[DateTimeUnit.YEAR]: 'FullYear',
 	[DateTimeUnit.MONTH]: 'Month',
 	[DateTimeUnit.DAY]: 'Date',
@@ -58,7 +44,7 @@ const DateField = {
 	[DateTimeUnit.SECOND]: 'Seconds',
 	[DateTimeUnit.MILLISECOND]: 'Milliseconds',
 	dayOfTheWeek: 'Day'
-};
+});
 
 /** @constant {Object<string, string>} */
 const PeriodUnit = Object.freeze({
@@ -115,5 +101,5 @@ const MillisecondsIn = {
 	MILLISECONDS: 1
 };
 
-export const { invalidDate } = constants;
+export const invalidDate = new Date('');
 export { i18n, regExps, DateTimeUnit, DateField, PeriodUnit, periodUnitFields, DateOperation, DateParsingToken, dateParserTokenMappings, MillisecondsIn };

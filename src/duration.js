@@ -5,7 +5,7 @@ import Period from './period.js';
 /**
  * Class representation of a Duration of time
  *
- * @author d1g1tal <jason.dimeo@gmail.com>
+ * @author D1g1talEntr0py <jason.dimeo@gmail.com>
  */
 export default class Duration {
 	#years;

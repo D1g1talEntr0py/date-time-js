@@ -5,7 +5,7 @@ import Duration from './duration.js';
 import Locale from './locale.js';
 import Period from './period.js';
 import TimeZone from './time-zone.js';
-import { DateField, DateOperation, DateTimeUnit, i18n, PeriodUnit, invalidDate } from './constants.js';
+import { DateField, DateOperation, DateTimeUnit, PeriodUnit, i18n, invalidDate } from './constants.js';
 import { _convertLegacyDate, _dateFromArray, _processDatePeriodOperations, _set, _startOf } from './utils.js';
 
 /**
@@ -28,7 +28,7 @@ import { _convertLegacyDate, _dateFromArray, _processDatePeriodOperations, _set,
  * const dateTime = new DateTime('28/10/2018 23:43:12', { utc: true, pattern: 'DD/MM/YYYY HH:mm:ss' })
  * console.log(dateTime.toString()) // 2018-10-28T23:43:12.000Z
  * @module {DateTime} date-time
- * @author d1g1tal <jason.dimeo@gmail.com>
+ * @author D1g1talEntr0py <jason.dimeo@gmail.com>
  */
 export default class DateTime {
 	/** @type {BaseDateTime} */
@@ -104,6 +104,8 @@ export default class DateTime {
 	/**
 	 * Creates a {@link DateTime} object in UTC mode.
 	 *
+	 * @static
+	 * @example const dateTime = DateTime.utc();
 	 * @param {(string|number|Date|Array<number>|undefined)} [date] The optional value used to create an instance of a new {@link DateTime} object
 	 * @param {DateTimeConfig} [dateTimeConfig = {}] The optional configuration object for the new {@link DateTime} instance. The value for 'utc' is ignored.
 	 * @returns {DateTime} The {@link DateTime} instance using UTC
@@ -115,6 +117,7 @@ export default class DateTime {
 	/**
 	 * Parses the provided date to a {@link DateTime} object or null if the date is invalid.
 	 *
+	 * @static
 	 * @param {string} date The date to parse
 	 * @param {string} pattern The pattern used to parse the date with
 	 * @param {Object} [config] Configuration options
@@ -129,6 +132,7 @@ export default class DateTime {
 	/**
 	 * Returns the minimum date from the specified dates.
 	 *
+	 * @static
 	 * @param  {...DateTime} dates The dates to compare.
 	 * @returns {DateTime} The minimum date.
 	 */
@@ -139,6 +143,7 @@ export default class DateTime {
 	/**
 	 * Returns the maximum date from the specified dates.
 	 *
+	 * @static
 	 * @param  {...DateTime} dates The dates to compare.
 	 * @returns {DateTime} The maximum date.
 	 */
@@ -149,6 +154,7 @@ export default class DateTime {
 	/**
 	 * Create a {@link DateTime} instance at the start of a unit of time.
 	 *
+	 * @static
 	 * @param {string} unit The unit of time to start at.
 	 * @param {boolean} utc	Whether to use UTC mode.
 	 * @returns {DateTime} The new {@link DateTime} instance.

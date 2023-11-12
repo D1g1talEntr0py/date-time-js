@@ -5,7 +5,7 @@ import { DateField, DateTimeUnit, MillisecondsIn } from './constants.js';
  * BaseDateTime - A class to hold the basic properties of a date
  *
  * @module {BaseDateTime} base-date-time
- * @author d1g1tal <jason.dimeo@gmail.com>
+ * @author D1g1talEntr0py <jason.dimeo@gmail.com>
  */
 export default class BaseDateTime {
 	/** @type {Date} */
@@ -42,8 +42,8 @@ export default class BaseDateTime {
 	/**
 	 * Create a new {@link BaseDateTime} instance from a native {@link Date}
 	 *
-	 * @param {Date} [date = new Date()] The date used to retrieve properties from
-	 * @param {boolean} [utc = false] Indicates that the UTC flag should be used when retrieving a property
+	 * @param {Date} [date=new Date()] The date used to retrieve properties from
+	 * @param {boolean} [utc=false] Indicates that the UTC flag should be used when retrieving a property
 	 */
 	constructor(date = new Date(), utc = false) {
 		this.#date = date;
@@ -53,6 +53,7 @@ export default class BaseDateTime {
 	/**
 	 * Gets the {@link Date} object.
 	 *
+	 * @readonly
 	 * @returns {Date} The date.
 	 */
 	get date() {
@@ -62,6 +63,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the flag indicating if the date is in UTC mode.
 	 *
+	 * @readonly
 	 * @returns {boolean} `true` if the date is in UTC mode, `false` otherwise.
 	 */
 	get utc() {
@@ -71,6 +73,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the year.
 	 *
+	 * @readonly
 	 * @returns {number} The year
 	 */
 	get [DateTimeUnit.YEAR]() {
@@ -80,6 +83,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the month of the year.
 	 *
+	 * @readonly
 	 * @returns {number} The month of the year.
 	 */
 	get [DateTimeUnit.MONTH]() {
@@ -89,6 +93,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the day of the month.
 	 *
+	 * @readonly
 	 * @returns {number} The day of the month.
 	 */
 	get [DateTimeUnit.DAY]() {
@@ -98,6 +103,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the hour of the day.
 	 *
+	 * @readonly
 	 * @returns {number} The hour of the day.
 	 */
 	get [DateTimeUnit.HOUR]() {
@@ -107,6 +113,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the minute of the hour.
 	 *
+	 * @readonly
 	 * @returns {number} The minute of the hour.
 	 */
 	get [DateTimeUnit.MINUTE]() {
@@ -116,6 +123,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the second of the minute.
 	 *
+	 * @readonly
 	 * @returns {number} The second of the minute.
 	 */
 	get [DateTimeUnit.SECOND]() {
@@ -125,6 +133,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the millisecond of the second.
 	 *
+	 * @readonly
 	 * @returns {number} The millisecond of the second.
 	 */
 	get [DateTimeUnit.MILLISECOND]() {
@@ -134,6 +143,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the day of the week.
 	 *
+	 * @readonly
 	 * @returns {number} The day of the week.
 	 */
 	get dayOfTheWeek() {
@@ -144,6 +154,7 @@ export default class BaseDateTime {
 	 * Get the day of the year.
 	 * {@see https://stackoverflow.com/a/27790471/230072}
 	 *
+	 * @readonly
 	 * @returns {number} The day of the year.
 	 */
 	get dayOfTheYear() {
@@ -155,6 +166,7 @@ export default class BaseDateTime {
 	 * 1. If the month is February, return 28 or 29 depending on whether the year is a leap year.
 	 * 2. Otherwise, return 30 or 31 depending on whether the month is September, April, June, or November.
 	 *
+	 * @readonly
 	 * @returns {number} The number of days in the month.
 	 */
 	get daysInMonth() {
@@ -164,6 +176,7 @@ export default class BaseDateTime {
 	/**
 	 * Get the flag indicating if the date is old and handles timezone offsets differently.
 	 *
+	 * @readonly
 	 * @returns {boolean} `true` if the date is a legacy date, `false` otherwise.
 	 */
 	get isLegacyDate() {
@@ -181,12 +194,23 @@ export default class BaseDateTime {
 	 *
 	 * {@see https://stackoverflow.com/questions/11887934/how-to-check-if-dst-daylight-saving-time-is-in-effect-and-if-so-the-offset}
 	 *
+	 * @readonly
 	 * @returns {boolean} `true` if the date is observing DST, `false` otherwise
 	 */
 	get isDaylightSavingsTime() {
 		return this.#isDaylightSavingsTime ??= this.year < 100 ? false : (this.#date.valueOf() - _dateFromArray([this.year, 1, 0]).valueOf() - ((this.dayOfTheYear * 24 * 60 + (this.hour & 0xff) * 60 + (this.minute & 0xff)) | 0) * MillisecondsIn.MINUTES - (this.second & 0xff) * MillisecondsIn.SECONDS - this.millisecond) !== 0;
 	}
 
+	/**
+	 * Get the flag indicating if the date is valid.
+	 * A date is valid if it is not `NaN`.
+	 *
+	 * @readonly
+	 * @example
+	 * new BaseDateTime().isValid; // true
+	 * new BaseDateTime('foo').isValid; // false
+	 * @returns {boolean} `true` if the date is valid, `false` otherwise.
+	 */
 	get isValid() {
 		return this.#isValid ??= !Number.isNaN(this.#date.valueOf());
 	}
@@ -194,6 +218,7 @@ export default class BaseDateTime {
 	/**
 	 * Returns the stored time value in milliseconds since midnight, January 1, 1970 UTC.
 	 *
+	 * @readonly
 	 * @returns {number} The number of milliseconds since midnight, January 1, 1970 UTC.
 	 */
 	valueOf() {
@@ -203,6 +228,7 @@ export default class BaseDateTime {
 	/**
 	 * A String value that is used in the creation of the default string description of an object.
 	 *
+	 * @readonly
 	 * @returns {string} The default string describing this object
 	 */
 	get [Symbol.toStringTag]() {

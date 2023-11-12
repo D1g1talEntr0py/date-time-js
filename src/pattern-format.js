@@ -1,9 +1,14 @@
-export default class PatternFormat {
+/**
+ * Provides a class for creating locale patterns for parsing dates in based on the possible pattern tokens provided.
+ *
+ * @module {PatternFormat} pattern-format
+ * @author D1g1talEntr0py <jason.dimeo@gmail.com>
+ */
+class PatternFormat {
 	/**
 	 * Creates the locale patterns for parsing dates in based on the possible pattern tokens provided.
 	 *
 	 * @param {Object<string, string>} patternTokens The locale pattern tokens to use for formatting.
-	 * @author d1g1tal <jason.dimeo@gmail.com>
 	 */
 	constructor(patternTokens) {
 		/** @type {string} */
@@ -84,3 +89,5 @@ export default class PatternFormat {
 	static ABBR_FULL_DATE_TIME = this.constructor.ABBR_FULL_DATE_TIME;
 	static ABBR_FULL_DATE_TIME_ZONE = this.constructor.ABBR_FULL_DATE_TIME_ZONE;
 }
+
+export default PatternFormat;

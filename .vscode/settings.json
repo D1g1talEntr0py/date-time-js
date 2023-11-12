@@ -42,5 +42,16 @@
 	"eslint.format.enable": false,
 	"eslint.lintTask.enable": true,
 	"eslint.onIgnoredFiles": "warn",
-	"docwriter.style": "JSDoc"
+	"docwriter.style": "JSDoc",
+	"editor.fontLigatures": true,
+	"editor.fontVariations": false,
+	"window.autoDetectColorScheme": false,
+	"workbench.colorTheme": "Default Dark+",
+	"workbench.preferredDarkColorTheme": "Default Dark+",
+	"workbench.preferredHighContrastColorTheme": "Default High Contrast",
+	"workbench.preferredHighContrastLightColorTheme": "Default High Contrast Light",
+	"workbench.preferredLightColorTheme": "Default Light+",
+	"editor.tokenColorCustomizations": {},
+	"workbench.iconTheme": "vscode-icons",
+	"terminal.integrated.minimumContrastRatio": 7
 }

@@ -1,10 +1,11 @@
 import { DateField, periodUnitFields } from './constants.js';
+
 /** @typedef { import('./date-time.js').default } DateTime */
 
 /**
  * Class representation of a Period of time
  *
- * @author d1g1tal <jason.dimeo@gmail.com>
+ * @author D1g1talEntr0py <jason.dimeo@gmail.com>
  */
 export default class Period {
 	/** @type {number} */
@@ -81,7 +82,7 @@ export default class Period {
 
 	/**
 	 * Returns the name of the object's type.
-	 * 
+	 *
 	 * @returns {string} The name of the object's type.
 	 */
 	get [Symbol.toStringTag]() {

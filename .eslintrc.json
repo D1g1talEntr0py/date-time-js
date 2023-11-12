@@ -12,6 +12,8 @@
 		"sourceType": "module"
 	},
 	"rules": {
+		"jsdoc/no-defaults": 0,
+		"jsdoc/tag-lines": 0,
 		"no-fallthrough": "off",
 		"no-constant-condition": "off",
 		"indent": [
@@ -29,7 +31,8 @@
 		],
 		"semi": [
 			"error",
-			"always"
+			"always",
+			{	"omitLastInOneLineBlock": true }
 		]
 	},
 	"overrides": [],
